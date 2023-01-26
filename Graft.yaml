@@ -6,6 +6,6 @@ chia:
     authors:
       - wallentx <william.allentx@gmail.com>
     build:
-      command: cmake . -B build
+      command: sh build.sh
     artifacts:
       - build-release/bladebit
