@@ -8,4 +8,4 @@ chia:
     build:
       command: cmake . -B build
     artifacts:
-      bladebit: build-release/bladebit
+      - build-release/bladebit
