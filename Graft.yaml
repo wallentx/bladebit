@@ -6,6 +6,6 @@ chia:
     authors:
       - wallentx <william.allentx@gmail.com>
     build:
-      command: sh build.sh
+      command: cmake . -B build && cd build && cmake --build . --target bladebit_cuda --config Release -j$(nproc --all)
     artifacts:
-      - build-release/bladebit
+      - build/bladebit_cuda
