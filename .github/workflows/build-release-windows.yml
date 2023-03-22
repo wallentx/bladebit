@@ -27,9 +27,10 @@ jobs:
           echo "INCLUDE_PATH=C:/vcpkg/installed/x64-windows-static/include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build CUDA
-        shell: bash
-        run: .github/actions/build-asset-unix.sh --cuda --artifact ${{ steps.version_number.outputs.BB_ARTIFACT_NAME_CUDA }} --version ${{steps.version_number.outputs.BB_VERSION}}
-
+        run: |
+         mkdir build && cd build
+         cmake .. -DCMAKE_LIBRARY_PATH="${LIBRARY_PATH}" -DCMAKE_INCLUDE_PATH="${INCLUDE_PATH}"
+         cmake --build . --target bladebit_cuda --config Release -j 44
       - name: Upload Artifact CUDA Windows x86-64
         uses: actions/upload-artifact@v3
         with:
