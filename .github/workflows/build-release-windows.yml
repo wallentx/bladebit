@@ -21,7 +21,7 @@ jobs:
       - name: Check and Install GMP if necessary
         shell: powershell
         run: |
-          if (-not ((vcpkg list) -match "gmp:x64-windows-static")) { vcpkg install gmp:x64-windows-static }
+          if (-not ((vcpkg.exe list) -match "gmp:x64-windows-static")) { vcpkg.exe install gmp:x64-windows-static }
 
       - name: Cache CUDA
         id: cache-cuda
@@ -34,7 +34,7 @@ jobs:
       - name: Install Prerequisites
         if: steps.cache-cuda.outputs.cache-hit != 'true'
         run: |
-          if (-not (Get-Command "nvcc" -ErrorAction SilentlyContinue)) { choco install cuda -y --no-progress --installargs "/InstallPath:C:\cuda" }
+          if (-not (Get-Command "nvcc.exe" -ErrorAction SilentlyContinue)) { choco install cuda -y --no-progress --installargs "/InstallPath:C:\cuda" }
 
       - name: Set Up Environment Variables
         run: |
