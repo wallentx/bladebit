@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-windows-x86-64:
-    runs-on: windows-latest
+    runs-on: starman
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
