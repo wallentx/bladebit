@@ -17,11 +17,12 @@ jobs:
           echo "BB_VERSION=3.0.0-alpha3" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "BB_ARTIFACT_NAME=bladebit-v3.0.0-alpha3-windows-x86-64.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "BB_ARTIFACT_NAME_CUDA=bladebit-cuda-v3.0.0-alpha3-windows-x86-64.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Set-Alias -Name vcpkg -Value C:\Users\William\scoop\shims\vcpkg.exe
 
       - name: Check and Install GMP if necessary
         shell: powershell
         run: |
-          if (-not ((vcpkg.exe list) -match "gmp:x64-windows-static")) { vcpkg.exe install gmp:x64-windows-static }
+          if (-not ((vcpkg list) -match "gmp:x64-windows-static")) { vcpkg install gmp:x64-windows-static }
 
       - name: Cache CUDA
         id: cache-cuda
