@@ -23,7 +23,7 @@ while true; do
 done
 
 
-thread_count=2
+thread_count=($nproc)
 
 if [[ $OSTYPE == 'darwin'* ]]; then
   thread_count=$(sysctl -n hw.logicalcpu)
@@ -43,7 +43,7 @@ if [[ compile_cuda ]]; then
 fi
 
 mkdir build && cd build
-cmake ..
+cmake .. -DCMAKE_LIBRARY_PATH="${LIBRARY_PATH}" -DCMAKE_INCLUDE_PATH="${INCLUDE_PATH}"
 bash -eo pipefail ../embed-version.sh
 cmake --build . --target bladebit --config Release --target $target -j $thread_count
 chmod +x ./bladebit
