@@ -22,7 +22,7 @@ jobs:
         shell: powershell
         run: |
           Set-Alias -Name vcpkg -Value C:\Users\William\scoop\shims\vcpkg.exe
-          if (-not ((vcpkg list) -match "gmp:x64-windows-static")) { vcpkg install gmp:x64-windows-static }
+          if (-not ((C:\Users\William\scoop\shims\vcpkg.exe list) -match "gmp:x64-windows-static")) { C:\Users\William\scoop\shims\vcpkg.exe install gmp:x64-windows-static }
 
       - name: Cache CUDA
         id: cache-cuda
