@@ -28,7 +28,8 @@ jobs:
 
       - name: Build CUDA
         run: |
-         mkdir build && cd build
+         mkdir build
+         cd build
          cmake .. -DCMAKE_LIBRARY_PATH="${LIBRARY_PATH}" -DCMAKE_INCLUDE_PATH="${INCLUDE_PATH}"
          cmake --build . --target bladebit_cuda --config Release -j 44
       - name: Upload Artifact CUDA Windows x86-64
