@@ -93,7 +93,7 @@ jobs:
           $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\bin"
           $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\libnvvp"
 
-          ls -la "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+          ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
       - name: Build Harvester
         run: |
