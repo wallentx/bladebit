@@ -93,6 +93,15 @@ jobs:
           $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\bin"
           $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\libnvvp"
 
+          # Set the CUDA_PATH environment variable
+          $env:CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+          $env:CUDAToolkit_ROOT = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+
+          # Set CUDA environment variables to GITHUB_ENV
+          echo "CUDA_PATH=$CUDA_PATH" >> $GITHUB_ENV
+          echo "CUDAToolkit_ROOT=$CUDAToolkit_ROOT" >> $GITHUB_ENV
+          echo "Path=$Path" >> $GITHUB_ENV
+
           ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
       - name: Build Harvester
