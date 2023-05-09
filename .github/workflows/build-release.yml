@@ -96,6 +96,7 @@ jobs:
           ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
       - name: Build Harvester
+        shell: pwsh
         run: |
           $artifactName = "green_reaper-v${env:BB_VERSION}-windows-x86-64.zip"
           echo "harvester_artifact_name=$artifactName" | Out-File -Append -FilePath $env:GITHUB_ENV
