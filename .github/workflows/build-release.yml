@@ -82,15 +82,17 @@ jobs:
           $arch = "x86_64"
 
           # Download and install the CUDA Toolkit
-          wget https://developer.download.nvidia.com/compute/cuda/11.5.0/local_installers/cuda_11.5.0_496.13_win10.exe -OutFile "cuda_installer.exe"
-          Start-Process -FilePath "cuda_installer.exe" -ArgumentList "-s" -Wait
-          Remove-Item "cuda_installer.exe"
+          $url = "https://developer.download.nvidia.com/compute/cuda/11.5.0/local_installers/cuda_11.5.0_496.13_win10.exe"
+          $outputFile = "cuda_installer.exe"
+          Invoke-WebRequest -Uri $url -OutFile $outputFile
+          Start-Process -FilePath $outputFile -ArgumentList "-s" -Wait
+          Remove-Item $outputFile
 
           # Update the PATH environment variable
           $env:Path += ";C:\Program Files\NVIDIA Corporation\NVSMI"
           $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\bin"
           $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\libnvvp"
-          
+
           ls -la "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
       - name: Build Harvester
