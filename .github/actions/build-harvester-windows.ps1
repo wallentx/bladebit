@@ -1,5 +1,5 @@
 param (
-    [string]$ArtifactName = "green_reaper.tar.gz"
+    [string]$ArtifactName = "green_reaper.zip"
 )
 
 Write-Host "Harvester artifact: $ArtifactName"
