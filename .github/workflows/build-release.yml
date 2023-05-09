@@ -66,7 +66,8 @@ jobs:
 
       - name: Get Version Number
         id: version_number
-        run: .\.github\actions\get-version.ps1 windows x86-64
+        shell: bash
+        run: .\.github\actions\get-version.sh windows x86-64
 
       - name: Install Prerequisites
         run: |
