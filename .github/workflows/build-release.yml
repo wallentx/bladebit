@@ -58,6 +58,55 @@ jobs:
           path: ${{ env.harvester_artifact_path }}
           if-no-files-found: error
 
+  build-harvester-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Get Version Number
+        id: version_number
+        run: .\github\actions\get-version.ps1 windows x86-64
+
+      - name: Install Prerequisites
+        run: |
+          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+          choco install -y git
+          choco install -y make
+          choco install -y wget
+
+      - name: Install CUDA Prerequisites
+        run: |
+          $distro = "windows"
+          $arch = "x86_64"
+
+          # Download and install the CUDA Toolkit
+          wget https://developer.download.nvidia.com/compute/cuda/11.5.0/local_installers/cuda_11.5.0_496.13_win10.exe -OutFile "cuda_installer.exe"
+          Start-Process -FilePath "cuda_installer.exe" -ArgumentList "-s" -Wait
+          Remove-Item "cuda_installer.exe"
+
+          # Update the PATH environment variable
+          $env:Path += ";C:\Program Files\NVIDIA Corporation\NVSMI"
+          $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\bin"
+          $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\libnvvp"
+          
+          ls -la "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+
+      - name: Build Harvester
+        run: |
+          $artifactName = "green_reaper-v${env:BB_VERSION}-windows-x86-64.zip"
+          echo "harvester_artifact_name=$artifactName" | Out-File -Append -FilePath $env:GITHUB_ENV
+
+          # emits env.harvester_artifact_path
+          .\github\actions\build-harvester-windows.ps1 -ArtifactName $artifactName
+
+      - name: Upload Harvester Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.harvester_artifact_name }}
+          path: ${{ env.harvester_artifact_path }}
+          if-no-files-found: error
+
   build-ubuntu-x86-64:
     runs-on: ubuntu-20.04
     steps:
