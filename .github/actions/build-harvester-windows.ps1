@@ -29,7 +29,7 @@ Get-ChildItem -Path "."
 Get-Content -Path "${ArtifactName}.sha256.txt"
 
 $harvesterArtifactPath = "$(Resolve-Path $ArtifactName)*"
-Write-Host "::set-env name=harvester_artifact_path::$harvesterArtifactPath"
+echo "harvester_artifact_path=$harvesterArtifactPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
 Set-Location -Path ".."
 Get-ChildItem -Path "."
