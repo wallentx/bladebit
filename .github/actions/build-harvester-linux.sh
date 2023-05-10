@@ -28,13 +28,10 @@ cmake --build . --config Release --target bladebit_harvester -j"$(nproc --all)"
 cmake --install . --prefix harvester_dist
 
 pushd harvester_dist/green_reaper
-artifact_files=()
-while read -r; do
-  artifact_files+=("$REPLY")
-done < <(find . -type f -printf "%f\n")
-sha256sum "${artifact_files[@]}" >sha256checksum
+artifact_files=$(find . -name '*.*' | cut -c3-)
+sha256sum ${artifact_files} >sha256checksum
 
-artifact_files+=("sha256checksum")
+artifact_files="${artifact_files} sha256checksum"
 
 tar --version
 tar -czvf "${artifact_name}" "${artifact_files[@]}"
