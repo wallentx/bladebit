@@ -102,7 +102,7 @@ jobs:
           # echo "CUDAToolkit_ROOT=$CUDAToolkit_ROOT" >> $GITHUB_ENV
           # #echo "Path=$Path" >> $GITHUB_ENV
 
-          vcpkg.exe install cuda:x64-windows-static-md
+          vcpkg.exe install cuda:x64-windows
 
           # ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
