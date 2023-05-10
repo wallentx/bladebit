@@ -78,29 +78,31 @@ jobs:
 
       - name: Install CUDA Prerequisites
         run: |
-          $distro = "windows"
-          $arch = "x86_64"
+          # $distro = "windows"
+          # $arch = "x86_64"
 
-          # Download and install the CUDA Toolkit
-          $url = "https://developer.download.nvidia.com/compute/cuda/11.5.0/local_installers/cuda_11.5.0_496.13_win10.exe"
-          $outputFile = "cuda_installer.exe"
-          Invoke-WebRequest -Uri $url -OutFile $outputFile
-          Start-Process -FilePath $outputFile -ArgumentList "-s" -Wait
-          Remove-Item $outputFile
+          # # Download and install the CUDA Toolkit
+          # $url = "https://developer.download.nvidia.com/compute/cuda/11.5.0/local_installers/cuda_11.5.0_496.13_win10.exe"
+          # $outputFile = "cuda_installer.exe"
+          # Invoke-WebRequest -Uri $url -OutFile $outputFile
+          # Start-Process -FilePath $outputFile -ArgumentList "-s" -Wait
+          # Remove-Item $outputFile
 
-          # Update the PATH environment variable
-          $env:Path += ";C:\Program Files\NVIDIA Corporation\NVSMI"
-          $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\bin"
-          $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\libnvvp"
+          # # Update the PATH environment variable
+          # $env:Path += ";C:\Program Files\NVIDIA Corporation\NVSMI"
+          # $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\bin"
+          # $env:Path += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\libnvvp"
 
-          # Set the CUDA_PATH environment variable
-          $env:CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
-          $env:CUDAToolkit_ROOT = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+          # # Set the CUDA_PATH environment variable
+          # $env:CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+          # $env:CUDAToolkit_ROOT = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
-          # Set CUDA environment variables to GITHUB_ENV
-          echo "CUDA_PATH=$CUDA_PATH" >> $GITHUB_ENV
-          echo "CUDAToolkit_ROOT=$CUDAToolkit_ROOT" >> $GITHUB_ENV
-          #echo "Path=$Path" >> $GITHUB_ENV
+          # # Set CUDA environment variables to GITHUB_ENV
+          # echo "CUDA_PATH=$CUDA_PATH" >> $GITHUB_ENV
+          # echo "CUDAToolkit_ROOT=$CUDAToolkit_ROOT" >> $GITHUB_ENV
+          # #echo "Path=$Path" >> $GITHUB_ENV
+
+          vcpkg.exe install cuda:x64-windows-static-md
 
           ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
