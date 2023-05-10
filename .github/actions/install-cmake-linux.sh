@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 set -eo pipefail
+
+if [[ $RUNNER_DEBUG = 1 ]]; then
+    set -x
+fi
+
 ref_cmake_sha256='39e1c2eccda989b0d000dc5f4ee2cb031bdda799163780d855acc0bd9eda9d92'
 cmake_name='cmake-3.23.3-linux-x86_64'
 
-curl -L https://github.com/Kitware/CMake/releases/download/v3.23.3/cmake-3.23.3-linux-x86_64.tar.gz > cmake.tar.gz
+curl -L https://github.com/Kitware/CMake/releases/download/v3.23.3/cmake-3.23.3-linux-x86_64.tar.gz >cmake.tar.gz
 
 cmake_sh_sha256=$(sha256sum cmake.tar.gz | cut -f1 -d' ')
 if [[ "${ref_cmake_sha256}" != "${cmake_sh_sha256}" ]]; then
-    2>&1 echo "sha256 mismatch!: "
-    2>&1 echo "Got     : '${cmake_sh_sha256}'"
-    2>&1 echo "Expected: '${ref_cmake_sha256}'"
+    echo 2>&1 "sha256 mismatch!: "
+    echo 2>&1 "Got     : '${cmake_sh_sha256}'"
+    echo 2>&1 "Expected: '${ref_cmake_sha256}'"
     exit 1
 fi
 

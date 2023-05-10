@@ -3,25 +3,28 @@
 
 set -eo pipefail
 
+if [[ $RUNNER_DEBUG = 1 ]]; then
+  set -x
+fi
+
 compile_cuda=0
 artifact_name=bladebit
 version=v1.0
 
 while true; do
   case $1 in
-    --cuda)
-      compile_cuda=1 || exit 1
+  --cuda)
+    compile_cuda=1 || exit 1
     ;;
-    --artifact)
-      shift && artifact_name=$1 || exit 1
+  --artifact)
+    shift && artifact_name=$1 || exit 1
     ;;
-    --version)
-      shift && version=$1 || exit 1
+  --version)
+    shift && version=$1 || exit 1
     ;;
   esac
   shift || break
 done
-
 
 thread_count=2
 
@@ -59,8 +62,8 @@ fi
 bb_version="$(./${exe_name} --version | xargs)"
 
 if [[ "$bb_version" != "$version" ]]; then
-    >&2 echo "Incorrect bladebit version. Got '$bb_version' but expected '$version'."
-    exit 1
+  echo >&2 "Incorrect bladebit version. Got '$bb_version' but expected '$version'."
+  exit 1
 fi
 
 tar --version
@@ -68,4 +71,3 @@ tar -czvf $artifact_name $exe_name
 mkdir -p ../bin
 mv $artifact_name ../bin/
 ls -la ../bin
-

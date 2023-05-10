@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+if [[ $RUNNER_DEBUG = 1 ]]; then
+  set -x
+fi
+
 artifact_name=green_reaper.tar.gz
 
 while true; do
@@ -34,11 +38,11 @@ tar -czvf "${artifact_name}" "${artifact_files}"
 
 popd
 mv harvester_dist/green_reaper/"${artifact_name}" ./
-sha256sum "${artifact_name}" >"${artifact_name}.sha256.txt"
+sha256sum "${artifact_name}" >"${artifact_name}".sha256.txt
 ls -la
-cat "${artifact_name}.sha256.txt"
+cat "${artifact_name}".sha256.txt
 
-echo "harvester_artifact_path=$(pwd)/${artifact_name}*" >>"$GITHUB_ENV"
+echo harvester_artifact_path="$(pwd)"/"${artifact_name}"* >>"$GITHUB_ENV"
 
 popd
 ls -la

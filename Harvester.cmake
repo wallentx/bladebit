@@ -151,3 +151,14 @@ endif()
 
 
 # target_compile_definitions(bladebit_harvester PRIVATE)
+
+# Disable blake3 conversion loss of data warnings
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    set_source_files_properties( 
+        src/b3/blake3_avx2.c
+        src/b3/blake3_avx512.c
+        src/b3/blake3_sse41.c
+        PROPERTIES COMPILE_FLAGS
+        /wd4244
+    )
+endif()
