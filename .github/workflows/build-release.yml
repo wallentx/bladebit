@@ -107,9 +107,9 @@ jobs:
       - name: Build Harvester
         shell: bash
         env:
-          CUDA_PATH: "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
-          CUDA_HOME: "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
-          CUDAToolkit_ROOT: "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+          CUDA_PATH: 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5'
+          CUDA_HOME: 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5'
+          CUDAToolkit_ROOT: 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5'
         run: |
           artifact_name=green_reaper-v${{ env.BB_VERSION }}-windows-x86-64.tar.gz
           echo "harvester_artifact_name=${artifact_name}" >> $GITHUB_ENV
