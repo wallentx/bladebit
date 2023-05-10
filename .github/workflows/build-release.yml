@@ -16,9 +16,6 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Set Job Env
-        uses: Chia-Network/actions/setjobenv@main
-
       - name: Get Version Number
         id: version_number
         shell: bash
@@ -64,9 +61,6 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-
-      - name: Set Job Env
-        uses: Chia-Network/actions/setjobenv@main
 
       - name: Get Version Number
         id: version_number
