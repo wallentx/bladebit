@@ -26,7 +26,7 @@ jobs:
         run: |
           set -eo pipefail
           yum group install -y "Development Tools"
-          yum install -y make git wget subscription-manager
+          yum install -y sudo make git wget subscription-manager
 
       - name: Setup CUDA
         uses: Jimver/cuda-toolkit@v0.2.10
