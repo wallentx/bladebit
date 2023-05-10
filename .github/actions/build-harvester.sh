@@ -28,21 +28,26 @@ cmake --build . --config Release --target bladebit_harvester -j"$(nproc --all)"
 cmake --install . --prefix harvester_dist
 
 pushd harvester_dist/green_reaper
-artifact_files=$(find . -name '*.*' | cut -c3-)
-sha256sum ${artifact_files} >sha256checksum
+artifact_files=()
+while read -r; do
+  artifact_files+=("$REPLY")
+done < <(find . -name '*.*' | cut -c3-)
+# shellcheck disable=SC2068
+sha256sum ${artifact_files[@]} >sha256checksum
 
-artifact_files="${artifact_files} sha256checksum"
+artifact_files+=("sha256checksum")
 
 tar --version
-tar -czvf ${artifact_name} ${artifact_files}
+# shellcheck disable=SC2068
+tar -czvf "${artifact_name}" ${artifact_files[@]}
 
 popd
-mv harvester_dist/green_reaper/${artifact_name} ./
-sha256sum ${artifact_name} >${artifact_name}.sha256.txt
+mv harvester_dist/green_reaper/"${artifact_name}" ./
+sha256sum "${artifact_name}" >"${artifact_name}".sha256.txt
 ls -la
-cat ${artifact_name}.sha256.txt
+cat "${artifact_name}".sha256.txt
 
-echo "harvester_artifact_path=$(pwd)/${artifact_name}" >>"$GITHUB_ENV"
+echo "harvester_artifact_path=$(pwd)/${artifact_name}*" >>"$GITHUB_ENV"
 
 popd
 ls -la
