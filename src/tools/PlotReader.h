@@ -1,5 +1,6 @@
 #pragma once
-#include "plotting/PlotTools.h"
+// #include "plotting/PlotTools.h"
+#include "plotting/FSETableGenerator.h"
 #include "plotting/PlotTypes.h"
 #include "plotting/PlotHeader.h"
 #include "io/FileStream.h"
@@ -228,6 +229,9 @@ public:
     uint32            GetLPStubByteSize( TableId table ) const;
     size_t            GetParkDeltasSectionMaxSize( TableId table ) const;
     const FSE_DTable* GetDTableForTable( TableId table ) const;
+
+    // Takes ownership of a decompression context
+    void AssignDecompressionContext( struct GreenReaperContext* context );
 
     void ConfigDecompressor( uint32 threadCount, bool disableCPUAffinity, uint32 cpuOffset = 0 );
     inline struct GreenReaperContext* GetDecompressorContext() const { return _grContext; }

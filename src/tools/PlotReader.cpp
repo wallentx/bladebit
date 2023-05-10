@@ -726,8 +726,10 @@ ProofFetchResult PlotReader::DecompressProof( const uint64 compressedProof[BB_PL
     req.plotId           = _plot.PlotId();
     req.compressionLevel = compressionLevel;
 
-    for( uint32 i = 0; i < BB_PLOT_PROOF_X_COUNT/2; i++ )
-        req.compressedProof[i] = (uint32)compressedProof[i];
+    const uint32 compressedProofCount = compressionLevel < 9 ? PROOF_X_COUNT / 2 : PROOF_X_COUNT / 4;
+
+    for( uint32 i = 0; i < compressedProofCount; i++ )
+        req.compressedProof[i] = compressedProof[i];
 
     const GRResult r = grFetchProofForChallenge( gr, &req );
 
@@ -922,6 +924,19 @@ bool PlotReader::LoadC2Entries()
 }
 
 //-----------------------------------------------------------
+void PlotReader::AssignDecompressionContext( struct GreenReaperContext* context )
+{
+    ASSERT( context );
+    if( !context)
+        return;
+
+    if( _grContext )
+        grDestroyContext( _grContext );
+    
+    _grContext = context;
+}
+
+//-----------------------------------------------------------
 void PlotReader::ConfigDecompressor( const uint32 threadCount, const bool disableCPUAffinity, const uint32 cpuOffset )
 {
     if( _grContext )
@@ -929,11 +944,13 @@ void PlotReader::ConfigDecompressor( const uint32 threadCount, const bool disabl
     _grContext = nullptr;
 
     GreenReaperConfig cfg = {};
-    cfg.threadCount = bbclamp( threadCount, 1u, SysHost::GetLogicalCPUCount() );
+    cfg.apiVersion         = GR_API_VERSION;
+    cfg.threadCount        = bbclamp( threadCount, 1u, SysHost::GetLogicalCPUCount() );
     cfg.cpuOffset          = cpuOffset;
-    cfg.disableCpuAffinity = (grBool)disableCPUAffinity;
+    cfg.disableCpuAffinity = disableCPUAffinity ? GR_TRUE : GR_FALSE;
 
-    _grContext = grCreateContext( &cfg );
+    auto result = grCreateContext( &_grContext, &cfg, sizeof( GreenReaperConfig ) );
+    ASSERT( result == GRResult_OK );
 }
 
 //-----------------------------------------------------------
@@ -942,9 +959,11 @@ GreenReaperContext* PlotReader::GetGRContext()
     if( _grContext == nullptr )
     {
         GreenReaperConfig cfg = {};
+        cfg.apiVersion  = GR_API_VERSION;
         cfg.threadCount = std::min( 8u, SysHost::GetLogicalCPUCount() );
 
-        _grContext = grCreateContext( &cfg );
+        auto result = grCreateContext( &_grContext, &cfg, sizeof( GreenReaperConfig ) );
+        ASSERT( result == GRResult_OK );
     }
 
     return _grContext;

@@ -32,7 +32,10 @@ struct ValidatePlotOptions
     bool        inRAM       = false;
     bool        unpacked    = false;
     uint32      threadCount = 0;
-    float       startOffset = 0.0f; // Offset percent at which to start
+    float       startOffset = 0.0f;  // Offset percent at which to start
+    bool        useCuda     = false; // Use a cuda device when decompressing
+
+    int64       f7          = -1;
 };
 
 
@@ -77,6 +80,10 @@ You can specify the thread count in the bladebit global option '-t'.
 
  --f7 <f7>       : Specify an f7 to find and validate in the plot.
 
+ --quality <f7>  : Fetch quality string for f7.
+
+ --cuda          : Use a CUDA device when decompressing.
+
  -h, --help      : Print this help message and exit.
 )";
 
@@ -117,7 +124,7 @@ static void GetProofF1( uint32 k, const byte plotId[BB_PLOT_ID_LEN], uint64 full
 template<bool Use64BitLpToSquare>
 static bool FetchProof( PlotReader& plot, uint64 t6LPIndex, uint64 fullProofXs[PROOF_X_COUNT], GreenReaperContext* gr = nullptr );
 
-static void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challengeHex );
+static void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challengeHex, bool qualityOnly );
 static void ReorderProof( PlotReader& plot, uint64 fullProofXs[PROOF_X_COUNT] );
 static void GetProofF1( uint32 k, const byte plotId[BB_PLOT_ID_LEN], uint64 fullProofXs[PROOF_X_COUNT], uint64 fx[PROOF_X_COUNT] );
 static bool DecompressProof( const byte plotId[BB_PLOT_ID_LEN], const uint32 compressionLevel, const uint64 compressedProof[PROOF_X_COUNT], uint64 fullProofXs[PROOF_X_COUNT], GreenReaperContext* gr = nullptr );
@@ -159,9 +166,9 @@ void PlotValidatorMain( GlobalPlotConfig& gCfg, CliParser& cli )
     opts.gCfg = &gCfg;
 
     const char* challenge = nullptr;
-    int64       f7        = -1;
     const char* fullProof = nullptr;
     const char* plotIdStr = nullptr;
+    bool        quality   = false;
 
     while( cli.HasArgs() )
     {
@@ -173,8 +180,21 @@ void PlotValidatorMain( GlobalPlotConfig& gCfg, CliParser& cli )
             continue;
         else if( cli.ReadStr( challenge, "--prove" ) )
             continue;
-        else if( cli.ReadI64( f7, "--f7" ) )    // Same as proof, but the challenge is made from an f7
+        else if( cli.ReadI64( opts.f7, "--f7" ) )    // Same as proof, but the challenge is made from an f7
             continue;
+        else if( cli.ReadI64( opts.f7, "--quality" ) )
+        {
+            quality = true;
+            continue;
+        }
+        else if( cli.ReadSwitch( opts.useCuda, "--cuda" ) )
+        {
+            #if !BB_CUDA_ENABLED
+                Fatal( "--cuda is only available in the bladebit_cuda variant." );
+            #endif
+
+            continue;
+        }
         else if( cli.ReadStr( fullProof, "--verify" ) )
         {
             challenge = cli.ArgConsume();
@@ -203,12 +223,12 @@ void PlotValidatorMain( GlobalPlotConfig& gCfg, CliParser& cli )
     //         challenge = nullptr;
     // }
 
-    if( f7 >= 0 )
+    if( opts.f7 >= 0 )
     {
+        // Create a default challenge string. The f7 will be embedded into it
         challenge = new char[65];
-        sprintf( (char*)challenge, "%08llx", f7 );
-        memset( (void*)(challenge+8), '0', 64-8 );
-        ((char*)challenge)[64] = 0;
+        const char challengeSrc[] = "00000000ff04b8ee9355068689bd558eafe07cc7af47ad1574b074fc34d6913a";
+        memcpy( (void*)challenge, challengeSrc, sizeof( challengeSrc ) - 1 );
     }
 
     const uint32 maxThreads = SysHost::GetLogicalCPUCount();
@@ -224,7 +244,7 @@ void PlotValidatorMain( GlobalPlotConfig& gCfg, CliParser& cli )
     if( challenge != nullptr )
     {
         opts.threadCount = std::min( maxThreads, gCfg.threadCount == 0 ? 8u : gCfg.threadCount );
-        GetProofForChallenge( opts,  challenge );
+        GetProofForChallenge( opts, challenge, quality );
         Exit( 0 );
     }
 
@@ -694,7 +714,7 @@ void VerifyFullProofStr( const ValidatePlotOptions& opts, const char* plotIdStr,
 
 // #TODO: Support K>32
 //-----------------------------------------------------------
-void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challengeHex )
+void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challengeHex, bool qualityOnly )
 {
     FatalIf( opts.plotPath.length() == 0, "Invalid plot path." );
     FatalIf( !challengeHex || !*challengeHex, "Invalid challenge." );
@@ -711,12 +731,25 @@ void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challeng
 
     const uint32 k = plot.K();
 
+    if( opts.f7 >= 0 )
+    {
+        // Embed f7 into challenge as BE
+        byte* challengeBytes = (byte*)challenge;
+        uint64 f7 = (uint64)opts.f7;
+
+        const size_t f7Size = CDiv( k, 8 );
+        
+        for( size_t i = 0; i < f7Size; i++ )
+            challengeBytes[i] = (uint8_t)(f7 >> ((f7Size - i - 1) * 8));
+    }
+
     // Read F7 value
     CPBitReader f7Reader( (byte*)challenge, sizeof( challenge ) * 8 );
     const uint64 f7 = f7Reader.Read64( k );
 
     // Find this f7 in the plot file
     PlotReader reader( plot );
+    // reader.ConfigDecompressor()
 
     uint64 p7BaseIndex = 0;
     const uint64 matchCount = reader.GetP7IndicesForF7( f7, p7BaseIndex );
@@ -730,6 +763,7 @@ void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challeng
     uint64 proof   [32]  = {};
     char   proofStr[513] = {};
     uint64 p7Entries[kEntriesPerPark] = {};
+    byte   quality  [BB_CHIA_QUALITY_SIZE ] = {};
 
     int64 prevP7Park = -1;
 
@@ -737,10 +771,19 @@ void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challeng
     if( plot.CompressionLevel() > 0 )
     {
         GreenReaperConfig cfg = {};
+        cfg.apiVersion  = GR_API_VERSION;
         cfg.threadCount = opts.threadCount;
 
-        gr = grCreateContext( &cfg );
-        FatalIf( gr == nullptr, "Failed to created decompression context." );
+        if( opts.useCuda )
+            cfg.gpuRequest = GRGpuRequestKind_FirstAvailable;
+
+        auto result = grCreateContext( &gr, &cfg, sizeof( GreenReaperConfig ) );
+        FatalIf( result != GRResult_OK, "Failed to created decompression context with error %d.", (int)result );
+
+        if( opts.useCuda && !(bool)grHasGpuDecompressor( gr ) )
+            Log::Line( "Warning: No GPU device selected. Falling back to CPU-based validation." );
+        else
+            reader.AssignDecompressionContext( gr );
     }
 
     for( uint64 i = 0; i < matchCount; i++ )
@@ -759,16 +802,27 @@ void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challeng
         const uint64 localP7Index = p7Index - p7Park * kEntriesPerPark;
         const uint64 t6Index      = p7Entries[localP7Index];
     
+        bool             gotProof = false;
+        ProofFetchResult qResult  = ProofFetchResult::NoProof;
+
         auto const timer    = TimerBegin();
-        const bool gotProof = FetchProof<true>( reader, t6Index, fullProofXs, gr );
+
+        if( qualityOnly )
+            qResult = reader.FetchQualityForP7Entry( t6Index, (byte*)challenge, quality );
+        else
+            gotProof = FetchProof<true>( reader, t6Index, fullProofXs, gr );
+
         auto const elapsed  = TimerEndTicks( timer );
 
         if( opts.gCfg->verbose )
-            Log::Line( "Proof fetch time: %02.2lf seconds ( %02.2lf ms ).", TicksToSeconds( elapsed ), TicksToNanoSeconds( elapsed ) * 0.000001 );
+        {
+            Log::Line( "%s fetch time: %02.2lf seconds ( %02.2lf ms ).", qualityOnly ? "Quality" : "Proof",
+                TicksToSeconds( elapsed ), TicksToNanoSeconds( elapsed ) * 0.000001 );
+        }
 
         if( gotProof )
         {
-            uint64 computedF7 = 0;
+            uint64 computedF7 = std::numeric_limits<uint64>::max();
             const bool valid = ValidateFullProof( plot.K(), plot.PlotId(), fullProofXs, computedF7 );
             ASSERT( valid && computedF7 == f7 );
 
@@ -785,6 +839,13 @@ void GetProofForChallenge( const ValidatePlotOptions& opts, const char* challeng
             size_t encoded;
             BytesToHexStr( (byte*)proof, sizeof( proof ), proofStr, sizeof( proofStr ), encoded );
             // Log::Line( "[%llu] : %s", i, proofStr );
+            Log::Line( proofStr );
+        }
+        else if( qResult == ProofFetchResult::OK )
+        {
+            size_t encoded;
+            BytesToHexStr( (byte*)quality, sizeof( quality ), proofStr, sizeof( proofStr ), encoded );
+            // Log::Write( "0x" );
             Log::Line( proofStr );
         }
     }
@@ -1061,11 +1122,12 @@ bool DecompressProof( const byte plotId[BB_PLOT_ID_LEN], const uint32 compressio
     if( gr == nullptr )
     {
         GreenReaperConfig cfg = {};
+        cfg.apiVersion  = GR_API_VERSION;
         cfg.threadCount = std::min( 8u, SysHost::GetLogicalCPUCount() );
 
-        gr = grCreateContext( &cfg );
-        FatalIf( gr == nullptr, "Failed to created decompression context." );
-
+        auto result = grCreateContext( &gr, &cfg, sizeof( GreenReaperConfig ) );
+    
+        FatalIf( result != GRResult_OK, "Failed to created decompression context with error %d.", (int)result );
         destroyContext = true;
     }
 
@@ -1075,10 +1137,12 @@ bool DecompressProof( const byte plotId[BB_PLOT_ID_LEN], const uint32 compressio
     req.compressionLevel = compressionLevel;
     req.plotId           = plotId;
 
-    for( uint32 i = 0; i < PROOF_X_COUNT; i++ )
-        req.compressedProof[i] = (uint32)compressedProof[i];
+    const uint32 compressedProofCount = compressionLevel < 9 ? PROOF_X_COUNT / 2 : PROOF_X_COUNT / 4;
 
-    GRResult r = grFetchProofForChallenge( gr, &req );
+    for( uint32 i = 0; i < compressedProofCount; i++ )
+        req.compressedProof[i] = compressedProof[i];
+
+    const GRResult r = grFetchProofForChallenge( gr, &req );
 
     bbmemcpy_t( fullProofXs, req.fullProof, PROOF_X_COUNT );
 
@@ -1106,7 +1170,7 @@ bool FetchProof( PlotReader& plot, uint64 t6LPIndex, uint64 fullProofXs[PROOF_X_
 
     const bool    isCompressed = plot.PlotFile().CompressionLevel() > 0;
     const TableId endTable     = !isCompressed ? TableId::Table1 :
-                                    plot.PlotFile().CompressionLevel() < 8 ? 
+                                    plot.PlotFile().CompressionLevel() < 9 ? 
                                     TableId::Table2 : TableId::Table3;
 
     for( TableId table = TableId::Table6; table >= endTable; table-- )

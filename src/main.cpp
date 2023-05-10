@@ -312,6 +312,11 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
             CmdPlotsCheckMain( cfg, cli );
             Exit( 0 );
         }
+        else if( cli.ArgConsume( "cudacheck" ) )
+        {
+            CmdCheckCUDA( cfg, cli );
+            Exit( 1 );
+        }
         else if( cli.ArgConsume( "help" ) )
         {
             if( cli.HasArgs() )
@@ -334,6 +339,8 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
                     CmdSimulateHelp();
                 else if( cli.ArgMatch( "check" ) )
                     CmdPlotsCheckHelp();
+                else if( cli.ArgMatch( "cudacheck" ) )
+                    CmdCheckCUDAHelp();
                 else
                     Fatal( "Unknown command '%s'.", cli.Arg() );
 
@@ -473,6 +480,9 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
     
 
     FatalIf( plotter == nullptr, "No plotter type chosen." );
+
+    // #TODO: Remove when C8 compression values added.
+    FatalIf( cfg.compressionLevel == 8, "Compression level 8 is not currently supported." );
 
     // Parse plotter-specific CLI
     plotter->ParseCLI( cfg, cli );
