@@ -76,7 +76,12 @@ jobs:
           choco install -y make
           choco install -y wget
 
-      # - name: Install CUDA Prerequisites
+      - name: Install CUDA Prerequisites
+        uses: Jimver/cuda-toolkit@v0.2.10
+        id: cuda-toolkit
+        with:
+          cuda: '12.1.0'
+
       #   run: |
           # $distro = "windows"
           # $arch = "x86_64"
@@ -107,10 +112,6 @@ jobs:
           # ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
       - name: Build Harvester
-        uses: Jimver/cuda-toolkit@v0.2.10
-        id: cuda-toolkit
-        with:
-          cuda: '12.1.0'
         run: |
           echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
           echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
