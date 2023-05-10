@@ -42,7 +42,7 @@ sha256sum ${artifact_name} >${artifact_name}.sha256.txt
 ls -la
 cat ${artifact_name}.sha256.txt
 
-echo "harvester_artifact_path=$(pwd)/${artifact_name}*" >>"$GITHUB_ENV"
+echo "harvester_artifact_path=$(pwd)/${artifact_name}" >>"$GITHUB_ENV"
 
 popd
 ls -la
