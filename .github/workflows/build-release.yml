@@ -104,7 +104,7 @@ jobs:
 
           vcpkg.exe install cuda:x64-windows-static-md
 
-          ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
+          # ls "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5"
 
       - name: Build Harvester
         shell: bash
