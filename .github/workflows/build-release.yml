@@ -51,7 +51,6 @@ jobs:
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
-        shell: bash
         with:
           name: ${{ env.harvester_artifact_name }}
           path: ${{ env.harvester_artifact_path }}
@@ -93,10 +92,11 @@ jobs:
           export artifact_name="green_reaper-v${{ env.BB_VERSION }}-windows-x86-64.tar.gz"
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
           bash .github/actions/build-harvester.sh --artifact "${artifact_name}"
+          windows_path=$(echo ${{ env.harvester_artifact_path }} | tr '/' '\\' | sed 's/^\\d/D:/')
+          echo "harvester_artifact_path=${windows_path}" >> "$GITHUB_ENV"
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
-        shell: bash
         with:
           name: ${{ env.harvester_artifact_name }}
           path: ${{ env.harvester_artifact_path }}
