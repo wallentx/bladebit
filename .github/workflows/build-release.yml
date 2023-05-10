@@ -51,6 +51,7 @@ jobs:
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
+        shell: bash
         with:
           name: ${{ env.harvester_artifact_name }}
           path: ${{ env.harvester_artifact_path }}
@@ -95,6 +96,7 @@ jobs:
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
+        shell: bash
         with:
           name: ${{ env.harvester_artifact_name }}
           path: ${{ env.harvester_artifact_path }}
