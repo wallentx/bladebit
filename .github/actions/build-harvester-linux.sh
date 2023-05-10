@@ -29,9 +29,9 @@ cmake --install . --prefix harvester_dist
 
 pushd harvester_dist/green_reaper
 artifact_files=()
-while IFS= read -r -d $'\0'; do
+while read -r; do
   artifact_files+=("$REPLY")
-done < <(find . -name '*.*' -print0)
+done < <(find . -type f -printf "%f\n")
 sha256sum "${artifact_files[@]}" >sha256checksum
 
 artifact_files+=("sha256checksum")
