@@ -1,0 +1,14 @@
+chia:
+  graft:
+    name: bladebit
+    version: 2.0.1
+    description: BladeBit - Fast Chia (XCH) k32-only Plotter
+    authors:
+      - wallentx <william.allentx@gmail.com>
+    build:
+      command: |
+        cmake . -B build
+        cd build
+        cmake --build . --target bladebit_cuda --config Release -j$(nproc --all)
+    artifacts:
+      - build/bladebit_cuda
