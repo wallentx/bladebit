@@ -8,7 +8,7 @@ env:
   CI_BLADEBIT: 1  # Our own CI, that is, not being built as a dependency
 
 jobs:
-  build-harvester-x86-64:
+  build-harvester-linux-x86-64:
     runs-on: ubuntu-20.04
     container:
       image: quay.io/pypa/manylinux2014_x86_64
@@ -47,7 +47,7 @@ jobs:
           export artifact_name="green_reaper-v${{ env.BB_VERSION }}-linux-x86-64.tar.gz"
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
           # emits env.harvester_artifact_path
-          ./.github/actions/build-harvester-linux.sh --artifact "${artifact_name}"
+          bash .github/actions/build-harvester-linux.sh --artifact "${artifact_name}"
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
