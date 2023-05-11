@@ -94,6 +94,7 @@ jobs:
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
           # bash .github/actions/build-harvester.sh --artifact "${artifact_name}"
           echo "harvester_artifact_path=/d/a/bladebit/bladebit/build-harvester/green_reaper-v3.0.0-alpha4-windows-x86-64.tar.gz*" >> "$GITHUB_ENV"
+          echo "harvester_artifact_path=${{ env.harvester_artifact_path }}"
           echo "$harvester_artifact_path" | sed 's/\//\\/g' | sed 's/^\\d/D:/'
           echo ${{env.harvester_artifact_path}}
           echo ${{env.harvester_artifact_path}} | sed 's/\//\\/g' | sed 's/^\\d/D:/'
