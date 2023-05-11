@@ -72,6 +72,7 @@ jobs:
         run: |
           choco install -y make
           choco install -y wget
+          choco install -y sed
 
       - name: Setup CUDA
         uses: Jimver/cuda-toolkit@v0.2.10
@@ -92,14 +93,14 @@ jobs:
           export artifact_name="green_reaper-v${{ env.BB_VERSION }}-windows-x86-64.tar.gz"
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
           bash .github/actions/build-harvester.sh --artifact "${artifact_name}"
-          windows_path=$(echo ${{ env.harvester_artifact_path }} | tr '/' '\\' | sed 's/^\\d/D:/')
-          echo "harvester_artifact_path=${windows_path}" >> "$GITHUB_ENV"
+          export windows_path=$(echo ${{ env.harvester_artifact_path }} | sed 's/\//\\/g' | sed 's/^\\d/D:/')
+          echo "windows_path=$windows_path" >> "$GITHUB_ENV"
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.harvester_artifact_name }}
-          path: ${{ env.harvester_artifact_path }}
+          path: ${{ env.windows_path }}
           if-no-files-found: error
 
   # build-ubuntu-x86-64:
