@@ -47,7 +47,13 @@ sha256sum "${artifact_name}" >"${artifact_name}".sha256.txt
 ls -la
 cat "${artifact_name}".sha256.txt
 
-echo "harvester_artifact_path=$(pwd)/${artifact_name}*" >>"$GITHUB_ENV"
+linux_path=$(echo "$(pwd)/${artifact_name}*")
+export linux_path
+echo "harvester_artifact_path_linux=$linux_path" >>"$GITHUB_ENV"
+
+windows_path=$(echo "$(pwd)/${artifact_name}*" | sed 's/\//\\/g' | sed 's/^\\d/D:/')
+export windows_path
+echo "harvester_artifact_path_windows=$windows_path" >>"$GITHUB_ENV"
 
 popd
 ls -la
