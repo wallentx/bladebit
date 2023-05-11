@@ -46,14 +46,14 @@ jobs:
         run: |
           export artifact_name="green_reaper-v${{ env.BB_VERSION }}-linux-x86-64.tar.gz"
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
-          # emits env.harvester_artifact_path_linux
+          # emits env.harvester_artifact_path
           bash .github/actions/build-harvester.sh --artifact "${artifact_name}"
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.harvester_artifact_name }}
-          path: ${{ env.harvester_artifact_path_linux }}
+          path: ${{ env.harvester_artifact_path }}
           if-no-files-found: error
 
   build-harvester-windows:
@@ -92,14 +92,14 @@ jobs:
         run: |
           export artifact_name="green_reaper-v${{ env.BB_VERSION }}-windows-x86-64.tar.gz"
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
-          # emits env.harvester_artifact_path_windows
+          # emits env.harvester_artifact_path
           bash .github/actions/build-harvester.sh --artifact "${artifact_name}"
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.harvester_artifact_name }}
-          path: ${{ env.harvester_artifact_path_windows }}
+          path: ${{ env.harvester_artifact_path }}
           if-no-files-found: error
 
   # build-ubuntu-x86-64:
