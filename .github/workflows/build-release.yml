@@ -94,9 +94,19 @@ jobs:
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
           # bash .github/actions/build-harvester.sh --artifact "${artifact_name}"
           export artifact_path="/d/a/bladebit/bladebit/build-harvester/green_reaper-v3.0.0-alpha4-windows-x86-64.tar.gz*"
-          echo "harvester_artifact_path=${artifact_path}" >> "$GITHUB_ENV"
+          echo $artifact_path
+          echo $artifact_path | sed 's/\//\\/g' | sed 's/^\\d/D:/'
+          echo $artifact_name
+          $GITHUB_ENV
+          export $($GITHUB_ENV | grep 'artifact')
+          echo $artifact_name
+
+          export harvester_artifact_path=$(echo "$artifact_path")
+          echo $harvester_artifact_path
+          echo $harvester_artifact_path | sed 's/\//\\/g' | sed 's/^\\d/D:/'
           export windows_path=$(echo ${harvester_artifact_path} | sed 's/\//\\/g' | sed 's/^\\d/D:/')
-          echo "harvester_windows_path=${windows_path}" >> "$GITHUB_ENV"
+          echo "harvester_windows_path=$(echo $windows_path)"
+          echo "harvester_windows_path=$(echo "$windows_path") >> "$GITHUB_ENV"
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
