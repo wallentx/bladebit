@@ -111,7 +111,7 @@ jobs:
           echo "running 8"
           echo "harvester_windows_path=$(echo $windows_path)"
           echo "running 9"
-          echo "harvester_windows_path=$(echo "$windows_path") >> "$GITHUB_ENV"
+          echo "harvester_windows_path=$(echo "$windows_path")" >> "$GITHUB_ENV"
 
       - name: Upload Harvester Artifact
         uses: actions/upload-artifact@v3
