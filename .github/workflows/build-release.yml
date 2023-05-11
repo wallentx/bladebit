@@ -94,18 +94,23 @@ jobs:
           echo "harvester_artifact_name=${artifact_name}" >> "$GITHUB_ENV"
           # bash .github/actions/build-harvester.sh --artifact "${artifact_name}"
           export artifact_path="/d/a/bladebit/bladebit/build-harvester/green_reaper-v3.0.0-alpha4-windows-x86-64.tar.gz*"
+          echo "running 1"
           echo $artifact_path
+          echo "running 2"
           echo $artifact_path | sed 's/\//\\/g' | sed 's/^\\d/D:/'
+          echo "running 3"
           echo $artifact_name
-          $GITHUB_ENV
-          export $($GITHUB_ENV | grep 'artifact')
-          echo $artifact_name
-
+          echo "running 4"
           export harvester_artifact_path=$(echo "$artifact_path")
+          echo "running 5"
           echo $harvester_artifact_path
+          echo "running 6"
           echo $harvester_artifact_path | sed 's/\//\\/g' | sed 's/^\\d/D:/'
+          echo "running 7"
           export windows_path=$(echo ${harvester_artifact_path} | sed 's/\//\\/g' | sed 's/^\\d/D:/')
+          echo "running 8"
           echo "harvester_windows_path=$(echo $windows_path)"
+          echo "running 9"
           echo "harvester_windows_path=$(echo "$windows_path") >> "$GITHUB_ENV"
 
       - name: Upload Harvester Artifact
