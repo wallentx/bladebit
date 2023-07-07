@@ -6,6 +6,22 @@ A high-performance **k32-only**, Chia (XCH) plotter supporting in-RAM and disk-b
 
 ## Requirements
 
+## **GPU (CUDA) Plotter Requirements**
+
+
+**Supported system configurations for alpha:**
+ 
+|||
+|------------|-------------------------------------------------------------------------------
+| **OS**     | Windows and Linux                                                             
+| **Memory** | **256GB** of system DRAM                                                      
+| **GPUs**   | NVIDIA GPUs with CUDA capability **5.2** and up with at least **8GB** of vRAM 
+|            |                                                                               
+
+> See https://developer.nvidia.com/cuda-gpus for compatible GPUs.
+
+<br/>
+
 ### In-RAM
 **416 GiB of RAM are required** to run it, and a few more megabytes for stack space and small allocations.
 
@@ -124,5 +140,5 @@ Basic `diskplot` usage:
 Licensed under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0). See [LICENSE](LICENSE).
 
 
-Copyright 2022 Harold Brenes, Chia Network Inc
+Copyright 2023 Harold Brenes, Chia Network Inc
 
