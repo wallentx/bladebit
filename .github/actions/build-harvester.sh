@@ -57,7 +57,7 @@ if [[ "$CI" == "true" ]]; then
 
 #    echo "$OBJDUMP" >>summary.md
   #fi
-
+echo "hi" >> "$GITHUB_STEP_SUMMARY"
 #  if [[ "$host_os" == "windows" ]]; then
 #    harvester_artifact_path="$(cygpath -m "$(pwd)/${artifact_name}")*"
 #  else
@@ -66,6 +66,3 @@ if [[ "$CI" == "true" ]]; then
 #  echo "harvester_artifact_path=$harvester_artifact_path"
 #  echo "harvester_artifact_path=$harvester_artifact_path" >>"$GITHUB_ENV"
 fi
-
-popd
-ls -la
