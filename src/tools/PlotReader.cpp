@@ -8,6 +8,7 @@
 #include "plotting/Compression.h"
 #include "harvesting/GreenReaper.h"
 #include "BLS.h"
+#include "plotdisk/jobs/IOJob.h"
 
 ///
 /// Plot Reader
@@ -30,19 +31,15 @@ PlotReader::~PlotReader()
     free( _parkBuffer );    _parkBuffer = nullptr;
     free( _deltasBuffer );  _deltasBuffer = nullptr;
 
-    if( _c1Buffer )
-        bbvirtfreebounded( _c1Buffer );
-    _c1Buffer = nullptr;
+    bbvirtfreebounded( _c1Buffer );
 
     if( _c2Entries.Ptr() )
         delete[] _c2Entries.values;
     _c2Entries = {};
 
-    if( _c3Buffer.Ptr() )
-        bbvirtfreebounded( _c3Buffer.Ptr() );
-    _c3Buffer = {};
+    bbvirtfreebounded_span( _c3Buffer );
 
-    if( _grContext )
+    if( _grContext && _ownsGrContext )
         grDestroyContext( _grContext );
     _grContext = nullptr;
 }
@@ -351,22 +348,25 @@ bool PlotReader::ReadLPParkComponents( TableId table, uint64 parkIndex,
     if( _plot.Read( 2, &compressedDeltasSize ) != 2 )
         return false;
 
-    if( !( compressedDeltasSize & 0x8000 ) && compressedDeltasSize > maxDeltasSizeBytes )
+    // Don't support uncompressed deltas
+    if( compressedDeltasSize & 0x8000 )
         return false;
 
     size_t deltaCount = 0;
-    if( compressedDeltasSize & 0x8000 ) 
-    {
-        // Uncompressed
-        compressedDeltasSize &= 0x7fff;
-        if( _plot.Read( compressedDeltasSize, compressedDeltaBuffer ) != compressedDeltasSize )
-            return false;
 
-        deltaCount = compressedDeltasSize;
-    }
-    else
+    // #TODO: Investigate this, but we should not support uncompressed deltas
+    // if( compressedDeltasSize & 0x8000 ) 
+    // {
+    //     // Uncompressed
+    //     compressedDeltasSize &= 0x7fff;
+    //     if( _plot.Read( compressedDeltasSize, compressedDeltaBuffer ) != compressedDeltasSize )
+    //         return false;
+
+    //     deltaCount = compressedDeltasSize;
+    // }
+    // else
     {
-        // Compressed
+        // Compressed deltas
         if( _plot.Read( compressedDeltasSize, compressedDeltaBuffer ) != compressedDeltasSize )
             return false;
 
@@ -474,7 +474,7 @@ uint32 PlotReader::GetLPStubBitSize( TableId table ) const
         return _plot.K() - kStubMinusBits;
 
     auto info = GetCompressionInfoForLevel( _plot.CompressionLevel() );
-    return info.subtSizeBits;
+    return info.stubSizeBits;
 }
 
 //-----------------------------------------------------------
@@ -936,24 +936,30 @@ void PlotReader::AssignDecompressionContext( struct GreenReaperContext* context 
     if( !context)
         return;
 
-    if( _grContext )
+    if( _grContext && _ownsGrContext )
         grDestroyContext( _grContext );
     
-    _grContext = context;
+    _grContext     = context;
+    _ownsGrContext = false;
 }
 
 //-----------------------------------------------------------
-void PlotReader::ConfigDecompressor( const uint32 threadCount, const bool disableCPUAffinity, const uint32 cpuOffset )
+void PlotReader::ConfigDecompressor( const uint32 threadCount, const bool disableCPUAffinity, const uint32 cpuOffset, bool useGpu, int gpuIndex )
 {
-    if( _grContext )
+    if( _grContext && _ownsGrContext )
         grDestroyContext( _grContext );
-    _grContext = nullptr;
+
+    _grContext     = nullptr;
+    _ownsGrContext = true;
 
     GreenReaperConfig cfg = {};
     cfg.apiVersion         = GR_API_VERSION;
     cfg.threadCount        = bbclamp( threadCount, 1u, SysHost::GetLogicalCPUCount() );
     cfg.cpuOffset          = cpuOffset;
     cfg.disableCpuAffinity = disableCPUAffinity ? GR_TRUE : GR_FALSE;
+    cfg.gpuRequest         = !useGpu ? GRGpuRequestKind_None : 
+                                gpuIndex >= 0 ? GRGpuRequestKind_ExactDevice : GRGpuRequestKind_FirstAvailable;
+    cfg.gpuDeviceIndex     = gpuIndex < 0 ? 0 : gpuIndex;
 
     auto result = grCreateContext( &_grContext, &cfg, sizeof( GreenReaperConfig ) );
     ASSERT( result == GRResult_OK );
@@ -970,6 +976,8 @@ GreenReaperContext* PlotReader::GetGRContext()
 
         auto result = grCreateContext( &_grContext, &cfg, sizeof( GreenReaperConfig ) );
         ASSERT( result == GRResult_OK );
+
+        _ownsGrContext = true;
     }
 
     return _grContext;
@@ -1266,7 +1274,18 @@ size_t FilePlot::PlotSize() const
 //-----------------------------------------------------------
 ssize_t FilePlot::Read( size_t size, void* buffer )
 {
-    return _file.Read( buffer, size );
+    if( size > (size_t)std::numeric_limits<ssize_t>::max() )
+        size = (size_t)std::numeric_limits<ssize_t>::max();
+
+    int error = 0;
+    if( !IOJob::ReadFromFileUnaligned( _file, buffer, size, error ) )
+    {
+        size = 0;
+        (void)error;
+        Log::Error( "Failed to read from plot with error %d", error );
+    }
+
+    return (ssize_t)size;
 }
 
 //-----------------------------------------------------------
