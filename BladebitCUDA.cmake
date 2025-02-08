@@ -29,6 +29,15 @@ add_executable(bladebit_cuda
     # Harvester
     cuda/harvesting/CudaThresher.cu
     cuda/harvesting/CudaThresherFactory.cu
+
+    # BLAKE3 Sources
+    src/b3/blake3.c
+    src/b3/blake3_dispatch.c
+    src/b3/blake3_portable.c
+    src/b3/blake3_sse2_x86-64_unix.S
+    src/b3/blake3_sse41_x86-64_unix.S
+    src/b3/blake3_avx2_x86-64_unix.S
+    src/b3/blake3_avx512_x86-64_unix.S
 )
 
 target_include_directories(bladebit_cuda PRIVATE src cuda SYSTEM cuda)
@@ -39,6 +48,18 @@ target_compile_definitions(bladebit_cuda PUBLIC
 )
 
 target_compile_options(bladebit_cuda PRIVATE
+    $<$<COMPILE_LANGUAGE:C,CXX>:
+        -msse2
+        -msse4.1
+        -mavx2
+        -mavx512f
+    >
+
+    $<$<COMPILE_LANGUAGE:CUDA>:
+        -Xcudafe="--diag_suppress=177,550"
+        -Wno-deprecated-gpu-targets
+    >
+
     ${cuda_archs}
 
     $<${is_cuda_release}:
@@ -47,7 +68,11 @@ target_compile_options(bladebit_cuda PRIVATE
     $<${is_cuda_debug}:
     #    -G
     >
- )
+)
+
+#set_source_files_properties(src/b3/blake3_avx512.c PROPERTIES
+#    COMPILE_FLAGS "-mavx512f -mavx512vl"
+#)
 
 target_link_options(bladebit_cuda PRIVATE $<DEVICE_LINK: ${cuda_archs}>)
 
