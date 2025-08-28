@@ -44,10 +44,10 @@ PlotWriter::~PlotWriter()
 }
 
 //-----------------------------------------------------------
-void PlotWriter::EnablePlotChecking( PlotChecker& checker )
-{
-    _plotChecker = &checker;
-}
+// void PlotWriter::EnablePlotChecking( PlotChecker& checker )
+// {
+//     _plotChecker = &checker;
+// }
 
 //-----------------------------------------------------------
 bool PlotWriter::BeginPlot( PlotVersion version, 
@@ -297,17 +297,20 @@ void PlotWriter::EndPlot( const bool rename )
 //-----------------------------------------------------------
 bool PlotWriter::CheckPlot()
 {
-    if( _dummyMode || !_plotChecker ) return false;
-
-    const char* plotPath = _plotPathBuffer.Ptr();
-
-    PlotCheckResult checksResult{};
-    _plotChecker->CheckPlot( plotPath, &checksResult );
-
-    if( !checksResult.error.empty() )
-        return false;
-
-    return !checksResult.deleted;
+    // if( _dummyMode || !_plotChecker ) return false;
+    // 
+    // const char* plotPath = _plotPathBuffer.Ptr();
+    // 
+    // PlotCheckResult checksResult{};
+    // _plotChecker->CheckPlot( plotPath, &checksResult );
+    // 
+    // if( !checksResult.error.empty() )
+    //     return false;
+    // 
+    // return !checksResult.deleted;
+    
+    // Always return true for minimal CUDA build (no plot checking)
+    return true;
 }
 
 
@@ -972,10 +975,13 @@ void PlotWriter::CmdEndPlot( const Command& cmd )
     _stream.Close();
 
     bool renamePlot = cmd.endPlot.rename;
-    if( _plotChecker )
-    {
+    // if( _plotChecker )
+    // {
+    //     renamePlot = CheckPlot();
+    // }
+    // For minimal CUDA build, always check the plot (which always returns true now)
+    if( renamePlot )
         renamePlot = CheckPlot();
-    }
 
     // Now rename to its final non-temp name
     if( renamePlot )
