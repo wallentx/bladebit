@@ -1,5 +1,5 @@
 add_executable(bladebit_cuda
-    src/main.cpp
+    src/main_cuda.cpp
 
     cuda/CudaPlotter.cu
     cuda/CudaPlotter.h
