@@ -19,3 +19,8 @@ park*_hash.txt
 lib/*
 build*/
 cmake-build*/
+
+# Windows and Visual Studio files
+*.ps1
+CMakeSettings.json
+.vscode/

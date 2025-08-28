@@ -13,19 +13,13 @@ if(NOT CMAKE_BUILD_TYPE)
     )
 endif()
 
-# Allows for CMAKE_MSVC_RUNTIME_LIBRARY
-if(POLICY CMP0091)
-  cmake_policy(SET CMP0091 NEW) 
-endif()
-
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.16" CACHE STRING "macOS minimum supported version.")
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "MSVC Runtime Library")
 
 project(bladebit LANGUAGES C CXX ASM)
 
 # Ensure supported OS and Architecture
-if(NOT( (${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR (${CMAKE_SYSTEM_NAME} MATCHES "Darwin") OR (${CMAKE_SYSTEM_NAME} MATCHES "Windows") ))
-    message( FATAL_ERROR "Unsupported operating system '${CMAKE_SYSTEM_NAME}'" )
+if(NOT( (${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR (${CMAKE_SYSTEM_NAME} MATCHES "Darwin") ))
+    message( FATAL_ERROR "Unsupported operating system '${CMAKE_SYSTEM_NAME}'. Only Linux and macOS are supported." )
 endif()
 
 if(NOT (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "arm64" OR ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64" OR ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64"))
@@ -125,7 +119,6 @@ set(is_cuda_release $<AND:${is_cuda},${is_release}>)
 set(is_cuda_debug $<AND:${is_cuda},${is_debug}>)
 set(is_x86 $<OR:$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},AMD64>,$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},x86_64>>)
 set(is_arm $<OR:$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},arm64>,$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},aarch64>>)
-set(is_msvc_c_cpp $<AND:${is_c_cpp},$<CXX_COMPILER_ID:MSVC>>)
 
 
 if(CUDAToolkit_FOUND AND NOT ${NO_CUDA_HARVESTER})
