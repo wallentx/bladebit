@@ -173,7 +173,7 @@ set(src_bladebit_cuda_minimal
     src/threading/ThreadPool.h
     src/threading/AutoResetSignal.cpp
 
-    src/tools/PlotChecker.cpp
+    src/tools/MemTester.cpp
 
     src/util/Array.h
     src/util/Array.inl

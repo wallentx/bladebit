@@ -3,7 +3,7 @@
 #include "util/SPCQueue.h"
 #include "plotting/PlotTypes.h"
 #include "plotting/PlotHeader.h"
-#include "tools/PlotChecker.h"
+// #include "tools/PlotChecker.h" // Removed for minimal CUDA build
 #include "io/FileStream.h"
 #include "threading/Thread.h"
 #include "threading/AutoResetSignal.h"
@@ -87,7 +87,7 @@ public:
     PlotWriter( DiskBufferQueue& ownerQueue );
     virtual ~PlotWriter();
     
-    void EnablePlotChecking( PlotChecker& checker );
+    // void EnablePlotChecking( PlotChecker& checker ); // Disabled for minimal CUDA build
 
     // Begins writing a new plot. Any previous plot must have finished before calling this
     bool BeginPlot( PlotVersion version, 
@@ -297,6 +297,6 @@ private:
     std::mutex              _queueLock;
     // std::mutex              _pushLock;
 
-    PlotChecker* _plotChecker              = nullptr;    // User responsible for ownership of checker. Must live until this PlotWriter's lifetime neds.
+    // PlotChecker* _plotChecker              = nullptr;    // Disabled for minimal CUDA build
 };
 

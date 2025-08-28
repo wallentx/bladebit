@@ -17,10 +17,6 @@ static void PrintUsage();
 void MemTestMain( GlobalPlotConfig& gCfg, CliParser& cli );
 void MemTestPrintUsage();
 
-// PlotChecker.cpp (minimal plotting tools)
-void PlotValidatorMain( GlobalPlotConfig& gCfg, CliParser& cli );
-void PlotValidatorPrintUsage();
-
 //-----------------------------------------------------------
 int main( int argc, const char* argv[] )
 {
@@ -206,11 +202,6 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
         MemTestMain( cfg, cli );
         exit( 0 );
     }
-    else if( strcmp( command, "validate" ) == 0 )
-    {
-        PlotValidatorMain( cfg, cli );
-        exit( 0 );
-    }
     else if( strcmp( command, "help" ) == 0 )
     {
         if( commandCount < 2 )
@@ -228,10 +219,6 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
         else if( strcmp( helpCommand, "memtest" ) == 0 )
         {
             MemTestPrintUsage();
-        }
-        else if( strcmp( helpCommand, "validate" ) == 0 )
-        {
-            PlotValidatorPrintUsage();
         }
         else
         {
@@ -295,7 +282,6 @@ void PrintUsage()
     Log::Line( "COMMANDS:" );
     Log::Line( "  cudaplot    : Create plots using CUDA GPU acceleration" );
     Log::Line( "  memtest     : Test system memory" );
-    Log::Line( "  validate    : Validate plot files" );
     Log::Line( "  help <cmd>  : Show command-specific help" );
     Log::Line( "" );
     Log::Line( "For command-specific options, use: bladebit_cuda help <command>" );
