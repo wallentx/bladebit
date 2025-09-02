@@ -198,6 +198,19 @@ set(src_bladebit_cuda_minimal
     src/harvesting/GreenReaper.h
     src/harvesting/GreenReaperInternal.h
     src/harvesting/Thresher.h
+
+    # Additional sources required for CUDA build
+    src/util/KeyTools.cpp
+    src/plotting/Compression.cpp
+    src/plotting/FSETableGenerator.cpp
+    src/plotting/matching/GroupScan.cpp
+    src/plotting/DiskQueue.cpp
+    src/tools/PlotChecker.cpp
+    src/tools/PlotReader.cpp
+    src/tools/PlotFile.cpp
+    src/tools/PlotValidator.cpp
+    src/plotting/PlotValidation.cpp
+    src/plotting/f1/F1Gen.cpp
 )
 
 target_sources(bladebit_core PUBLIC ${src_bladebit_cuda_minimal})

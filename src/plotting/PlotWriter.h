@@ -12,6 +12,8 @@
 #include <mutex>
 #include <queue>
 
+class PlotChecker;
+
 /**
  * Handles writing the final plot data to disk asynchronously.
  *
@@ -87,7 +89,7 @@ public:
     PlotWriter( DiskBufferQueue& ownerQueue );
     virtual ~PlotWriter();
     
-    // void EnablePlotChecking( PlotChecker& checker ); // Disabled for minimal CUDA build
+    void EnablePlotChecking( PlotChecker& checker );
 
     // Begins writing a new plot. Any previous plot must have finished before calling this
     bool BeginPlot( PlotVersion version, 
@@ -297,6 +299,6 @@ private:
     std::mutex              _queueLock;
     // std::mutex              _pushLock;
 
-    // PlotChecker* _plotChecker              = nullptr;    // Disabled for minimal CUDA build
+    PlotChecker* _plotChecker              = nullptr;
 };
 

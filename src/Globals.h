@@ -1,4 +1,9 @@
 #pragma once
+#include <utility>
+#include <cstddef>
+#include <cstdint>
+#ifndef GLOBALS_H
+#define GLOBALS_H
 
 #define DEFER( m, ...)  m( __VA_ARGS__ )
 #define XSTR( x ) #x
@@ -197,10 +202,12 @@ struct NBytes
 {
     uint8_t data[_size];
 
-    inline uint8_t& operator[]( size_t index ) const { return this->values[index]; }
-    inline uint8_t& operator[]( uint32_t index ) const { return this->values[index]; }
-    inline uint8_t& operator[]( int32_t index ) const { return this->values[index]; }
-    inline uint8_t& operator[]( int64_t index ) const { return this->values[index]; }
+    inline uint8_t& operator[]( size_t index ) const { return this->data[index]; }
+    inline uint8_t& operator[]( uint32_t index ) const { return this->data[index]; }
+    inline uint8_t& operator[]( int32_t index ) const { return this->data[index]; }
+    inline uint8_t& operator[]( int64_t index ) const { return this->data[index]; }
 };
+
+#endif // GLOBALS_H
 
 

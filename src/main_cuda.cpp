@@ -2,6 +2,13 @@
 #include "util/CliParser.h"
 #include "plotting/PlotTools.h"
 #include "Version.h"
+#include "plotting/IPlotter.h"
+#include "SysHost.h"
+#include "util/Log.h"
+#include "util/KeyTools.h"
+#include "util/Util.h"
+#include <string>
+#include <cstdint>
 
 #if PLATFORM_IS_UNIX
     #include <sys/resource.h>
@@ -128,68 +135,69 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
 {
     CliParser cli( argc, argv );
 
-    if( argc < 1 || cli.HasArgs( "-h", "--help" ) )
+    if( argc < 1 || cli.ArgMatch( "-h", "--help" ) )
     {
         PrintUsage();
         exit( 0 );
     }
 
-    if( cli.HasArgs( "-v", "--version" ) )
+    if( cli.ArgMatch( "-v", "--version" ) )
     {
-        Log::Line( "Bladebit CUDA %s", BLADEBIT_VERSION );
+        Log::Line( "Bladebit CUDA %s", BLADEBIT_VERSION_STR );
         exit( 0 );
     }
 
     // Set the log level first
-    if( cli.HasArgs( "-q", "--quiet" ) )
-        Log::SetMaxDisplayLevel( LogLevel::Info );
+    if( cli.ArgMatch( "-q", "--quiet" ) )
+        Log::SetVerbose( false );
 
-    if( cli.HasArgs( "--verbose" ) )
-        Log::SetMaxDisplayLevel( LogLevel::All );
+    if( cli.ArgMatch( "--verbose" ) )
+        Log::SetVerbose( true );
 
     // Farmer & Pool public keys
     std::string farmerPkStr = "";
     std::string poolPkStr   = "";
     
-    if( cli.GetArg( farmerPkStr, "-f", "--farmer-key" ) )
+    if( cli.ReadStr( farmerPkStr, "-f", "--farmer-key" ) )
     {
         cfg.farmerPublicKey = new bls::G1Element();
-        *cfg.farmerPublicKey = KeyTools::HexPKToG1Element( farmerPkStr.c_str() );
+        KeyTools::HexPKeyToG1Element( farmerPkStr.c_str(), *cfg.farmerPublicKey );
     }
 
-    if( cli.GetArg( poolPkStr, "-p", "--pool-key" ) )
+    if( cli.ReadStr( poolPkStr, "-p", "--pool-key" ) )
     {
         cfg.poolPublicKey = new bls::G1Element();
-        *cfg.poolPublicKey = KeyTools::HexPKToG1Element( poolPkStr.c_str() );
+        KeyTools::HexPKeyToG1Element( poolPkStr.c_str(), *cfg.poolPublicKey );
+    }
+
+    // Compression level (0-9)
+    uint32 cLevel = cfg.compressionLevel;
+    if( cli.ReadU32( cLevel, "-z", "--compress" ) || cli.ReadU32( cLevel, "--compression-level" ) )
+    {
+        cLevel = std::min<uint32>( 9, cLevel );
+        cfg.compressionLevel = cLevel;
+        cfg.numDroppedTables = cLevel == 0 ? 0 : (cLevel < 9 ? 1 : 2);
     }
 
     // Pool contract puzzle hash
     std::string contractAddressStr = "";
-    if( cli.GetArg( contractAddressStr, "-c", "--contract" ) )
+    if( cli.ReadStr( contractAddressStr, "-c", "--contract" ) )
     {
-        if( !KeyTools::HexToBytes( contractAddressStr.c_str(), BB_PLOT_POOL_CONTRACT_PUZZLE_HASH_SIZE, cfg.poolContractPuzzleHash ) )
-            Fatal( "Invalid contract puzzle hash." );
-        
+        auto* ph = new PuzzleHash();
+        if( !PuzzleHash::FromAddress( *ph, contractAddressStr.c_str() ) )
+            Fatal( "Invalid contract puzzle hash '%s'.", contractAddressStr.c_str() );
+
+        cfg.poolContractPuzzleHash = ph;
         cfg.poolPublicKey = nullptr; 
     }
 
     // Get plot count
     int32 plotCount = 1;
-    cli.GetArg( plotCount, "-n", "--count" );
-    cfg.plotCount = (uint32)Max( 1, plotCount );
+    cli.ReadI32( plotCount, "-n", "--count" );
+    cfg.plotCount = (uint32)std::max( 1, (int)plotCount );
 
-    const char** commands     = cli.GetArgs();
-    const uint32 commandCount = cli.ArgCount();
+    const char* command = cli.ArgConsume();
     
-    if( commandCount < 1 )
-    {
-        PrintUsage();
-        exit( 1 );
-    }
-
-    // Get command
-    const char* command = commands[0];
-
     // CUDA-only commands
     if( strcmp( command, "cudaplot" ) == 0 )
     {
@@ -204,13 +212,13 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
     }
     else if( strcmp( command, "help" ) == 0 )
     {
-        if( commandCount < 2 )
+        if( !cli.HasArgs() )
         {
             PrintUsage();
             exit( 0 );
         }
 
-        const char* helpCommand = commands[1];
+        const char* helpCommand = cli.ArgConsume();
         
         if( strcmp( helpCommand, "cudaplot" ) == 0 )
         {
@@ -239,21 +247,16 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
     if( !cfg.farmerPublicKey )
         Fatal( "A farmer public key must be specified with -f." );
 
-    if( !cfg.poolPublicKey && !cfg.poolContractPuzzleHash[0] )
+    if( !cfg.poolPublicKey && !cfg.poolContractPuzzleHash )
         Fatal( "Either a pool public key or a pool contract address must be specified with -p or -c, respectively." );
 
     // Get output directories
-    const char** paths;
-    uint32 pathCount;
-    cli.GetArgs( paths, pathCount );
-
-    if( pathCount < 2 )  // Command + at least 1 output dir
+    if( !cli.HasArgs() )
         Fatal( "An output directory must be specified." );
-
-    // Last arguments are output directories
-    for( uint32 i = 1; i < pathCount; i++ )
+    
+    while( cli.HasArgs() )
     {
-        cfg.outputFolders[cfg.outputFolderCount++] = std::string( paths[i] );
+        cfg.outputFolders[cfg.outputFolderCount++] = std::string( cli.ArgConsume() );
 
         if( cfg.outputFolderCount >= GlobalPlotConfig::MAX_OUTPUT_FOLDERS )
             break;
@@ -263,7 +266,7 @@ void ParseCommandLine( GlobalPlotConfig& cfg, IPlotter*& outPlotter, int argc, c
 //-----------------------------------------------------------
 void PrintUsage()
 {
-    Log::Line( "Bladebit CUDA %s", BLADEBIT_VERSION );
+    Log::Line( "Bladebit CUDA %s", BLADEBIT_VERSION_STR );
     Log::Line( "A high-performance CUDA k32-only Chia plotter" );
     Log::Line( "" );
     Log::Line( "USAGE:" );
@@ -276,6 +279,8 @@ void PrintUsage()
     Log::Line( "  -p, --pool-key <key>   : Pool public key" );
     Log::Line( "  -c, --contract <address> : Pool contract address" );
     Log::Line( "  -n, --count <count>    : Number of plots to create (default: 1)" );
+    Log::Line( "  -z, --compress <level> : Compression level 0-9 (0 = classic plot, 1-9 = compressed)" );
+    Log::Line( "      --compression-level <level> : Same as --compress" );
     Log::Line( "  -q, --quiet            : Only output errors and minimal information" );
     Log::Line( "      --verbose          : Enable verbose output" );
     Log::Line( "" );

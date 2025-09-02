@@ -44,10 +44,10 @@ PlotWriter::~PlotWriter()
 }
 
 //-----------------------------------------------------------
-// void PlotWriter::EnablePlotChecking( PlotChecker& checker )
-// {
-//     _plotChecker = &checker;
-// }
+void PlotWriter::EnablePlotChecking( PlotChecker& checker )
+{
+    _plotChecker = &checker;
+}
 
 //-----------------------------------------------------------
 bool PlotWriter::BeginPlot( PlotVersion version, 
