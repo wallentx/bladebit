@@ -255,12 +255,16 @@ void CudaK32PlotPhase3( CudaK32PlotContext& cx )
         auto tableTimer = TimerBegin();
 
         auto timer = tableTimer;
+        Log::Line( "[P3] Calling CompressInlinedTable..." );
         CompressInlinedTable( cx );
+        Log::Line( "[P3] CompressInlinedTable finished." );
         auto elapsed = TimerEnd( timer );
-        Log::Line( " Step 1 completed step in %.2lf seconds.", elapsed );
+        Log::Line( "[P3] Step 1 completed step in %.2lf seconds.", elapsed );
 
         timer = TimerBegin();
+        Log::Line( "[P3] Calling CudaK32PlotPhase3Step3..." );
         CudaK32PlotPhase3Step3( cx );
+        Log::Line( "[P3] CudaK32PlotPhase3Step3 finished." );
 
         auto tableElapsed = TimerEnd( tableTimer );
         elapsed = TimerEnd( timer );
@@ -303,19 +307,25 @@ void CudaK32PlotPhase3( CudaK32PlotContext& cx )
 
         // Step 1
         auto timer = tableTimer;
+        Log::Line( "[P3] Calling Step1 for table %u...", (uint)rTable );
         Step1( cx );
+        Log::Line( "[P3] Step1 for table %u finished.", (uint)rTable );
         double elapsed = TimerEnd( timer );
         Log::Line( " Step 1 completed step in %.2lf seconds.", elapsed );
 
         // Step 2
         timer = TimerBegin();
+        Log::Line( "[P3] Calling CudaK32PlotPhase3Step2 for table %u...", (uint)rTable );
         CudaK32PlotPhase3Step2( cx );
+        Log::Line( "[P3] CudaK32PlotPhase3Step2 for table %u finished.", (uint)rTable );
         elapsed = TimerEnd( timer );
         Log::Line( " Step 2 completed step in %.2lf seconds.", elapsed );
 
         // Step 3
         timer = TimerBegin();
+        Log::Line( "[P3] Calling CudaK32PlotPhase3Step3 for table %u...", (uint)rTable );
         CudaK32PlotPhase3Step3( cx );
+        Log::Line( "[P3] CudaK32PlotPhase3Step3 for table %u finished.", (uint)rTable );
         elapsed = TimerEnd( timer );
         Log::Line( " Step 3 completed step in %.2lf seconds.", elapsed );
 
