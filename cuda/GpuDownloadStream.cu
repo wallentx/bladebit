@@ -359,6 +359,13 @@ void GpuDownloadBuffer::Reset()
     self->copySequence      = 0;
     self->fence.Reset( 0 );
     self->copyFence.Reset( 0 );
+
+    cudaStream_t stream = self->queue->_stream;
+    for( uint32 i = 0; i < self->bufferCount; i++ )
+    {
+        CudaErrCheck( cudaEventRecord( self->events[i]     , stream ) );
+        CudaErrCheck( cudaEventRecord( self->pinnedEvent[i], stream ) );
+    }
 }
 
 GpuQueue* GpuDownloadBuffer::GetQueue() const

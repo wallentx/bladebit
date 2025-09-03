@@ -494,14 +494,21 @@ void Step1( CudaK32PlotContext& cx )
 //-----------------------------------------------------------
 void CompressInlinedTable( CudaK32PlotContext& cx )
 {
+    Log::Line( "[P3] CompressInlinedTable starting..." );
+
+    auto& p3 = *cx.phase3;
+    p3.xTable.xIn.Reset();
+    p3.xTable.lpOut.Reset();
+    p3.xTable.indexOut.Reset();
+    
     auto LoadBucket = []( CudaK32PlotContext& cx, const uint32 bucket ) -> void {
 
         auto& p3 = *cx.phase3;
         auto& tx = p3.xTable;
 
-        // Load inlined x's
         const TableId rTable     = TableId::Table2 + (TableId)cx.gCfg->numDroppedTables;
         const uint32  entryCount = cx.bucketCounts[(int)rTable][bucket];
+        Log::Line( "[P3] Loading bucket %u with %u entries.", bucket, entryCount );
 
         if( bucket == 0 )
         {
@@ -509,6 +516,7 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
 
             if( cx.cfg.hybrid128Mode )
             {
+                Log::Line( "[P3] Swapping disk buffers for hybrid mode." );
                 cx.diskContext->tablesL[(int)rTable]->Swap();
                 tx.xIn.AssignDiskBuffer( cx.diskContext->tablesL[(int)rTable] );
             }
@@ -516,25 +524,30 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
 
         const Pair* inlinedXs = ((Pair*)cx.hostBackPointers[(int)rTable].left) + p3.pairsLoadOffset;
 
+        Log::Line( "[P3.X] Upload bucket %u, count %u", bucket, entryCount );
         tx.xIn.UploadT( inlinedXs, entryCount, cx.computeStream );
 
         p3.pairsLoadOffset += entryCount;
     };
 
     const TableId rTable = TableId::Table2 + (TableId)cx.gCfg->numDroppedTables;
-    auto& p3 = *cx.phase3;
     auto& tx = p3.xTable;
     auto& s2 = p3.step2;
+
+    Log::Line( "[P3.X] Init rTable=%u", (uint32)rTable );
+
+    tx.xIn.Reset();
+    tx.lpOut.Reset();
+    tx.indexOut.Reset();
 
     #if BBCU_DBG_SKIP_PHASE_2
         DbgLoadTablePairs( cx, rTable );
     #endif
 
-    // Load R Marking table (must be loaded before first bucket, on the same stream)
+    Log::Line( "[P3.X] Copy R marks" );
     CudaErrCheck( cudaMemcpyAsync( (void*)tx.devRMarks, cx.hostMarkingTables[(int)rTable],
                 GetMarkingTableBitFieldSize(), cudaMemcpyHostToDevice, p3.xTable.xIn.GetQueue()->GetStream() ) );
 
-    // Load initial bucket
     LoadBucket( cx, 0 );
 
     const bool   isCompressed     = cx.gCfg->compressionLevel > 0;
@@ -546,22 +559,30 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
     uint64 tablePrunedEntryCount = 0;
     uint32 rTableOffset          = 0;
 
+    Log::Line( "[P3] Resetting slice counts." );
     CudaErrCheck( cudaMemsetAsync( cx.devSliceCounts, 0, sizeof( uint32 ) * BBCU_BUCKET_COUNT * BBCU_BUCKET_COUNT, cx.computeStream ) );
 
     for( uint32 bucket = 0; bucket < BBCU_BUCKET_COUNT; bucket++ )
     {
         cx.bucket = bucket;
+        Log::Line( "[P3] Processing bucket %u.", bucket );
 
         if( bucket + 1 < BBCU_BUCKET_COUNT )
+        {
+            Log::Line( "[P3] Pre-loading bucket %u.", bucket + 1 );
             LoadBucket( cx, bucket + 1 );
-
-        // Wait for pairs to be ready
-        const Pair* devXs = (Pair*)tx.xIn.GetUploadedDeviceBuffer( cx.computeStream );
-
-        uint64* outLps     = (uint64*)tx.lpOut   .LockDeviceBuffer( cx.computeStream );
-        uint32* outIndices = (uint32*)tx.indexOut.LockDeviceBuffer( cx.computeStream );
+        }
 
         const uint32 entryCount     = cx.bucketCounts[(int)rTable][bucket];
+        Log::Line( "[P3.X] Bucket %u get devXs (count=%u)", bucket, entryCount );
+
+        const Pair* devXs = (Pair*)tx.xIn.GetUploadedDeviceBuffer( cx.computeStream );
+        Log::Line( "[P3.X] Bucket %u got devXs", bucket );
+
+        Log::Line( "[P3] Acquiring GPU output buffers for bucket %u.", bucket );
+        uint64* outLps     = (uint64*)tx.lpOut   .LockDeviceBuffer( cx.computeStream );
+        uint32* outIndices = (uint32*)tx.indexOut.LockDeviceBuffer( cx.computeStream );
+        Log::Line( "[P3.X] Bucket %u locked outputs", bucket );
 
         const uint32 threadPerBlock = 256;
         const uint32 blocksPerGrid  = CDiv( entryCount, (int)threadPerBlock ); 
@@ -572,31 +593,40 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
             CudaErrCheck( cudaMemsetAsync( outLps, 0, sizeof( uint64 ) * P3_PRUNED_BUCKET_MAX, cx.computeStream ) );
         #endif
 
+        Log::Line( "[P3.X] Bucket %u launch kernel (blocks=%u, threads=%u)", bucket, blocksPerGrid, threadPerBlock );
         CudaConvertInlinedXsToLinePoints<<<blocksPerGrid, threadPerBlock, 0, cx.computeStream>>>(
             entryCount, rTableOffset, lpBucketShift,
             devXs, tx.devRMarks, outLps, outIndices, devSliceCounts );
 
+        Log::Line( "[P3] Releasing GPU input buffer for bucket %u.", bucket );
         tx.xIn.ReleaseDeviceBuffer( cx.computeStream );
+        Log::Line( "[P3.X] Bucket %u released devXs", bucket );
 
-        // Download output
-        // Horizontal download (write 1 row)
+        Log::Line( "[P3] Submitting GPU-to-Host download for bucket %u.", bucket );
         tx.lpOut   .Download2DT<uint64>( p3.hostLinePoints + (size_t)bucket * P3_PRUNED_BUCKET_MAX  , P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_SLICE_MAX    , P3_PRUNED_SLICE_MAX, cx.computeStream );
         tx.indexOut.Download2DT<uint32>( p3.hostIndices    + (size_t)bucket * P3_PRUNED_BUCKET_MAX*3, P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_SLICE_MAX * 3, P3_PRUNED_SLICE_MAX, cx.computeStream );
+        Log::Line( "[P3.X] Bucket %u downloads posted", bucket );
 
         rTableOffset += entryCount;
     }
 
     cudaStream_t downloadStream = tx.lpOut.GetQueue()->GetStream();
 
+    Log::Line( "[P3.X] Download slice counts" );
     CudaErrCheck( cudaMemcpyAsync( cx.hostBucketSlices, cx.devSliceCounts, sizeof( uint32 ) * BBCU_BUCKET_COUNT * BBCU_BUCKET_COUNT, 
                     cudaMemcpyDeviceToHost, downloadStream ) );
 
+    Log::Line( "[P3.X] Wait for downloads" );
     tx.lpOut   .WaitForCompletion();
     tx.indexOut.WaitForCompletion();
+    Log::Line( "[P3] All downloads for all buckets are complete." );
+
+    Log::Line( "[P3] Resetting GPU buffer queues." );
     tx.lpOut   .Reset();
     tx.indexOut.Reset();
 
     CudaErrCheck( cudaStreamSynchronize( downloadStream ) );
+    Log::Line( "[P3.X] Downloads complete" );
 
     #if _DEBUG
         for( uint32 i = 0; i < BBCU_BUCKET_COUNT; i++ )
@@ -605,7 +635,6 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
         }
     #endif
 
-    // Add-up pruned bucket counts and tables counts
     {
         bbmemcpy_t( &s2.prunedBucketSlices[0][0], cx.hostBucketSlices, BBCU_BUCKET_COUNT * BBCU_BUCKET_COUNT );
 
@@ -626,12 +655,6 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
         cx.diskContext->phase3.lpAndLMapBuffer->Swap();
         cx.diskContext->phase3.indexBuffer->Swap();
     }
-
-// #if _DEBUG
-//     DbgValidateIndices( cx );
-//     // DbgValidateStep2Output( cx );
-//     // DbgDumpSortedLinePoints( cx );
-// #endif
 }
 
 
