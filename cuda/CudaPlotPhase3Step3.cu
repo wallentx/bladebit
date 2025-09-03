@@ -33,8 +33,8 @@ void CudaK32PlotPhase3Step3( CudaK32PlotContext& cx )
             return;
 
         // Vertical input layout of data: Start at row 0, column according to the current bucket
-        const uint64* linePoints = p3.hostLinePoints + (size_t)bucket * P3_PRUNED_SLICE_MAX;
-        const uint32* indices    = p3.hostIndices    + (size_t)bucket * P3_PRUNED_SLICE_MAX * 3; // This buffer is shared with RMap ((uint32)*3) (which we're about to write to),
+        const uint64* linePoints = p3.hostLinePoints + (size_t)bucket * P3_PRUNED_BUCKET_MAX;
+        const uint32* indices    = p3.hostIndices    + (size_t)bucket * P3_PRUNED_BUCKET_MAX * 3; // This buffer is shared with RMap ((uint32)*3) (which we're about to write to),
                                                                                                  // which is why we multiply by 3
 
         const uint32* counts     = &s2.prunedBucketSlices[0][bucket];

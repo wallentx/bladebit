@@ -129,7 +129,7 @@ void GpuDownloadBuffer::PerformDownload2D( void* hostBuffer, size_t width, size_
     const void*  devBuffer        = self->deviceBuffer[index];
 
     const bool   isDirect         = (directOverride || self->pinnedBuffer[0] == nullptr) && !self->diskBuffer;   ASSERT( isDirect || self->pinnedBuffer[0] );
-    const bool   isSequentialCopy = dstStride == srcStride;
+    const bool   isSequentialCopy = (srcStride == width);
     const size_t totalSize        = height * width;
 
 

@@ -37,28 +37,28 @@ __global__ void CudaConvertInlinedXsToLinePoints(
 
     __shared__ uint32 sharedBuckets[BBCU_BUCKET_COUNT];
 
-    CUDA_ASSERT( gridDim.x >= BBCU_BUCKET_COUNT );
+    CUDA_ASSERT( blockDim.x >= BBCU_BUCKET_COUNT );
     if( id < BBCU_BUCKET_COUNT )
         sharedBuckets[id] = 0;
 
     __syncthreads();
 
-    uint32 bucket;
-    uint32 offset;
-    uint64 lp;
-    uint32 count = 0;
+    uint32 bucket = 0;
+    uint32 offset = 0;
+    uint64 lp     = 0;
 
-    const bool isPruned = gid >= entryCount || !CuBitFieldGet( rMarks, rIndex );
-    if( !isPruned )
+    bool skip = gid >= entryCount || !CuBitFieldGet( rMarks, rIndex );
+    if( !skip )
     {
         const Pair p = inXs[gid];
         CUDA_ASSERT( p.left || p.right );
 
         lp     = CudaSquareToLinePoint64( p.left, p.right );
         bucket = (uint32)(lp >> bucketShift);
-        offset = atomicAdd( &sharedBuckets[bucket], 1 );
-
-        count = 1;
+        if( bucket < BBCU_BUCKET_COUNT )
+            offset = atomicAdd( &sharedBuckets[bucket], 1 );
+        else
+            skip = true;
     }
     __syncthreads();
 
@@ -67,13 +67,16 @@ __global__ void CudaConvertInlinedXsToLinePoints(
         sharedBuckets[id] = atomicAdd( &gBucketCounts[id], sharedBuckets[id] );
     __syncthreads();
 
-    if( isPruned )
+    if( skip )
         return;
 
-    const uint32 dst = bucket * P3_PRUNED_SLICE_MAX + sharedBuckets[bucket] + offset;
+    const uint32 base = sharedBuckets[bucket] + offset;
+    if( base >= P3_PRUNED_SLICE_MAX )
+        return;
+
+    const uint32 dst = bucket * P3_PRUNED_SLICE_MAX + base;
 
     CUDA_ASSERT( lp );
-    // CUDA_ASSERT( outLPs[dst] == 0 );
 
     outLPs    [dst] = lp;
     outIndices[dst] = rIndex;
@@ -136,7 +139,7 @@ __global__ void PruneAndWriteRMap(
 
     __shared__ uint32 sharedBuckets[BBCU_BUCKET_COUNT];
 
-    CUDA_ASSERT( gridDim.x >= BBCU_BUCKET_COUNT );
+    CUDA_ASSERT( blockDim.x >= BBCU_BUCKET_COUNT );
     if( id < BBCU_BUCKET_COUNT )
         sharedBuckets[id] = 0;
 
@@ -545,8 +548,13 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
     #endif
 
     Log::Line( "[P3.X] Copy R marks" );
+    cudaStream_t uploadStream = p3.xTable.xIn.GetQueue()->GetStream();
     CudaErrCheck( cudaMemcpyAsync( (void*)tx.devRMarks, cx.hostMarkingTables[(int)rTable],
-                GetMarkingTableBitFieldSize(), cudaMemcpyHostToDevice, p3.xTable.xIn.GetQueue()->GetStream() ) );
+                GetMarkingTableBitFieldSize(), cudaMemcpyHostToDevice, uploadStream ) );
+    cudaEvent_t marksReadyEvent;
+    CudaErrCheck( cudaEventCreateWithFlags( &marksReadyEvent, cudaEventDisableTiming ) );
+    CudaErrCheck( cudaEventRecord( marksReadyEvent, uploadStream ) );
+    CudaErrCheck( cudaStreamWaitEvent( cx.computeStream, marksReadyEvent ) );
 
     LoadBucket( cx, 0 );
 
@@ -598,14 +606,16 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
         CudaConvertInlinedXsToLinePoints<<<blocksPerGrid, threadPerBlock, 0, cx.computeStream>>>(
             entryCount, rTableOffset, lpBucketShift,
             devXs, tx.devRMarks, outLps, outIndices, devSliceCounts );
+        CudaErrCheck( cudaGetLastError() );
+        CudaErrCheck( cudaStreamSynchronize( cx.computeStream ) );
 
         Log::Line( "[P3] Releasing GPU input buffer for bucket %u.", bucket );
         tx.xIn.ReleaseDeviceBuffer( cx.computeStream );
         Log::Line( "[P3.X] Bucket %u released devXs", bucket );
 
         Log::Line( "[P3] Submitting GPU-to-Host download for bucket %u.", bucket );
-        tx.lpOut   .Download2DT<uint64>( p3.hostLinePoints + (size_t)bucket * P3_PRUNED_BUCKET_MAX  , P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_SLICE_MAX    , P3_PRUNED_SLICE_MAX, cx.computeStream );
-        tx.indexOut.Download2DT<uint32>( p3.hostIndices    + (size_t)bucket * P3_PRUNED_BUCKET_MAX*3, P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_SLICE_MAX * 3, P3_PRUNED_SLICE_MAX, cx.computeStream );
+        tx.lpOut   .Download2DT<uint64>( p3.hostLinePoints + (size_t)bucket * P3_PRUNED_BUCKET_MAX  , P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_BUCKET_MAX    , P3_PRUNED_SLICE_MAX, cx.computeStream );
+        tx.indexOut.Download2DT<uint32>( p3.hostIndices    + (size_t)bucket * P3_PRUNED_BUCKET_MAX*3, P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_BUCKET_MAX * 3, P3_PRUNED_SLICE_MAX, cx.computeStream );
         Log::Line( "[P3.X] Bucket %u downloads posted", bucket );
 
         rTableOffset += entryCount;
