@@ -44,7 +44,8 @@ done
 
 # Common flags
 COMMON_WARN_FLAGS="-w -fdiagnostics-color=always"
-CUDA_SILENCE="--disable-warnings -Wno-deprecated-gpu-targets --compiler-options -w"
+#CUDA_SILENCE="--disable-warnings -Wno-deprecated-gpu-targets --compiler-options -w"
+CUDA_SILENCE="--disable-warnings -Wno-deprecated-gpu-targets --compiler-options -w -Xptxas -v -Xnvlink --verbose"
 
 # Per-config build dir
 BUILD_DIR="build-${BUILD_TYPE,,}"  # build-release / build-debug
@@ -71,6 +72,37 @@ if [[ "$COMPILER" == "clang" ]]; then
     -DCMAKE_CXX_COMPILER=clang++
     -DCMAKE_CUDA_HOST_COMPILER="$(command -v clang++)"
   )
+fi
+
+# Architecture selection: default to multi-arch on CI, single-arch locally
+if [[ "${CI:-}" == "true" ]]; then
+  echo ">>> CI detected: building with default multi-architecture targets"
+  CMAKE_ARGS+=( -DBB_CUDA_USE_NATIVE=OFF )
+else
+  echo ">>> Local build: selecting native CUDA architecture (single SM)"
+  CMAKE_ARGS+=( -DBB_CUDA_USE_NATIVE=ON )
+
+  # Best-effort: probe and display the detected GPU SM for visibility
+  if command -v nvcc >/dev/null 2>&1; then
+    tmpdir=$(mktemp -d -t cudaComputeVersion-XXXXXX)
+    trap 'rm -rf "$tmpdir"' EXIT
+    cat > "$tmpdir/cudaComputeVersion.cu" <<'EOF'
+#include <stdio.h>
+#include <cuda_runtime.h>
+int main(){
+    cudaDeviceProp prop; cudaGetDeviceProperties(&prop,0);
+    int v = prop.major * 10 + prop.minor;
+    printf("Device Name:\n%s\n\n", prop.name);
+    printf("Your device architecture:\n-gencode arch=compute_%d,code=sm_%d\n", v, v);
+    return 0;
+}
+EOF
+    if nvcc "$tmpdir/cudaComputeVersion.cu" -o "$tmpdir/cudaComputeVersion" >/dev/null 2>&1; then
+      "$tmpdir/cudaComputeVersion" || true
+    fi
+    rm -rf "$tmpdir"
+    trap - EXIT
+  fi
 fi
 
 # Configure

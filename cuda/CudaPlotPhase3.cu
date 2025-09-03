@@ -594,6 +594,7 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
         #endif
 
         Log::Line( "[P3.X] Bucket %u launch kernel (blocks=%u, threads=%u)", bucket, blocksPerGrid, threadPerBlock );
+        CudaErrCheck( cudaMemsetAsync( devSliceCounts, 0, sizeof( uint32 ) * BBCU_BUCKET_COUNT, cx.computeStream ) );
         CudaConvertInlinedXsToLinePoints<<<blocksPerGrid, threadPerBlock, 0, cx.computeStream>>>(
             entryCount, rTableOffset, lpBucketShift,
             devXs, tx.devRMarks, outLps, outIndices, devSliceCounts );
