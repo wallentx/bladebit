@@ -1,4 +1,8 @@
 #pragma once
+#include <cstdint>
+#include <cstdio>
+#ifndef VERSION_H
+#define VERSION_H
 
 #ifndef BLADEBIT_VERSION_MAJ
     #define BLADEBIT_VERSION_MAJ    0
@@ -75,4 +79,6 @@ inline const char* BBGetCompilerVersion()
 #define BLADEBIT_VERSION_STR \
     STR( BLADEBIT_VERSION_MAJ ) "." STR( BLADEBIT_VERSION_MIN ) "." STR( BLADEBIT_VERSION_REV ) \
     BLADEBIT_VERSION_SUFFIX
+
+#endif // VERSION_H
 

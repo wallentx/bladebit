@@ -52,8 +52,8 @@ extern uint16_t L_targets[2][kBC][kExtraBitsPow];
 #define kEntriesPerPark      2048
 
 // To store deltas for EPP entries, the average delta must be less than this number of bits
-#define kMaxAverageDeltaTable1 5.6
-#define kMaxAverageDelta       3.5
+#define kMaxAverageDeltaTable1 6.0
+#define kMaxAverageDelta       4.0
 
 // C3 entries contain deltas for f7 values, the max average size is the following
 #define kC3BitsPerEntry 2.4

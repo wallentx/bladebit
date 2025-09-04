@@ -59,23 +59,14 @@ GPU-based (CUDA) plotter
 [OPTIONS]:
  -h, --help           : Shows this help message and exits.
  -d, --device         : Select the CUDA device index. (default=0)
+ -z, --compress <n>   : Compression level 0-9 (0 = classic, 1-9 = compressed)
+     --compression-level <n> : Same as --compress
 
  -l, --list           : List availabe CUDA devices, showing their indices.
 
  --json               : Show output in json format. This is only valid for certain parameters:
                           --list
 
- --disk-128           : Enable hybrid disk plotting for 128G system RAM. 
-                         Requires a --temp1 and --temp2 to be set.
-
- --disk-16            : (experimental) Enable hybrid disk plotting for 16G system RAM. 
-                         Requires a --temp1 and --temp2 to be set.
-
- -t1, --temp1         : Temporary directory 1. Used for longer-lived, sequential writes.
-
- -t2, --temp2         : Temporary directory 2. Used for temporary, shorted-lived read and writes.
-                         NOTE: If only one of -t1 or -t2 is specified, both will be
-                               set to the same directory.
 
  --check <n>          : Perform a plot check for <n> proofs on the newly created plot.
 
@@ -108,29 +99,16 @@ void CudaK32Plotter::ParseCLI( const GlobalPlotConfig& gCfg, CliParser& cli )
     {
         if( cli.ReadU32( cfg.deviceIndex, "-d", "--device" ) )
             continue;
-        if( cli.ReadSwitch( cfg.hybrid128Mode, "--disk-128" ) )
-            continue;
-        if( cli.ReadSwitch( cfg.hybrid16Mode, "--disk-16" ) )
+
+        uint32 cLevelTmp = 0;
+        if( cli.ReadU32( cLevelTmp, "-z", "--compress" ) || cli.ReadU32( cLevelTmp, "--compression-level" ) )
         {
-            cfg.hybrid128Mode = true;
+            auto* g = const_cast<GlobalPlotConfig*>( cfg.gCfg );
+            if( cLevelTmp > 9 ) cLevelTmp = 9;
+            g->compressionLevel = cLevelTmp;
+            g->numDroppedTables = cLevelTmp == 0 ? 0 : (cLevelTmp < 9 ? 1 : 2);
             continue;
         }
-        if( cli.ReadStr( cfg.temp1Path, "-t1", "--temp1" ) )
-        {
-            if( !cfg.temp2Path )
-                cfg.temp2Path = cfg.temp1Path;
-            continue;
-        }
-        if( cli.ReadStr( cfg.temp2Path, "-t2", "--temp2" ) )
-        {
-            if( !cfg.temp1Path )
-                cfg.temp1Path = cfg.temp2Path;
-            continue;
-        }
-        if( cli.ReadUnswitch( cfg.temp1DirectIO, "--no-t1-direct" ) )
-            continue;
-        if( cli.ReadUnswitch( cfg.temp2DirectIO, "--no-t2-direct" ) )
-            continue;
 
         if( cli.ReadU64( cfg.plotCheckCount, "--check" ) )
             continue;
@@ -155,29 +133,6 @@ void CudaK32Plotter::ParseCLI( const GlobalPlotConfig& gCfg, CliParser& cli )
     if( listDevices )
         ListCudaDevices( json );
 
-    if( cfg.hybrid128Mode && gCfg.compressionLevel <= 0 )
-    {
-        Log::Error( "Error: Cannot plot classic (uncompressed) plots in 128G or 64G mode." );
-        Exit( -1 );
-    }
-
-    if( cfg.hybrid16Mode )
-    {
-        #if PLATFORM_IS_WINDOWS
-            Log::Error( "16G mode is currently unsupported on Windows." );
-            Exit( -1 );
-        #else
-            Log::Line( "Warning: 16G mode is experimental and still under development." );
-            Log::Line( "         Please use the --check <n> parameter to validate plots when using this mode." );
-
-            if( cfg.temp1DirectIO || cfg.temp2DirectIO )
-            {
-                Log::Line( "         Direct I/O not supported in 16G mode at the moment. Disabing it." );
-                cfg.temp1DirectIO = cfg.temp2DirectIO = false;
-            }
-
-        #endif
-    }
 }
 
 //-----------------------------------------------------------

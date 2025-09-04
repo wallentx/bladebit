@@ -64,7 +64,7 @@ __global__ void CudaCompressToPark(
     // Grab the writing location after the stubs
     const size_t stubSectionBytes = CuCDiv( (kEntriesPerPark - 1) * (size_t)stubBitSize, 8 );
 
-    byte* deltaBytesWriter = ((byte*)writer) + stubSectionBytes;
+    byte* deltaBytesWriter = ((byte*)parkBuffer) + sizeof(uint64) + stubSectionBytes;
 
     // Write stubs
     {

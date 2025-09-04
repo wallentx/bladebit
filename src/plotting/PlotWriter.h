@@ -3,7 +3,7 @@
 #include "util/SPCQueue.h"
 #include "plotting/PlotTypes.h"
 #include "plotting/PlotHeader.h"
-#include "tools/PlotChecker.h"
+// #include "tools/PlotChecker.h" // Removed for minimal CUDA build
 #include "io/FileStream.h"
 #include "threading/Thread.h"
 #include "threading/AutoResetSignal.h"
@@ -11,6 +11,8 @@
 #include <functional>
 #include <mutex>
 #include <queue>
+
+class PlotChecker;
 
 /**
  * Handles writing the final plot data to disk asynchronously.
@@ -297,6 +299,6 @@ private:
     std::mutex              _queueLock;
     // std::mutex              _pushLock;
 
-    PlotChecker* _plotChecker              = nullptr;    // User responsible for ownership of checker. Must live until this PlotWriter's lifetime neds.
+    PlotChecker* _plotChecker              = nullptr;
 };
 

@@ -129,7 +129,7 @@ void GpuDownloadBuffer::PerformDownload2D( void* hostBuffer, size_t width, size_
     const void*  devBuffer        = self->deviceBuffer[index];
 
     const bool   isDirect         = (directOverride || self->pinnedBuffer[0] == nullptr) && !self->diskBuffer;   ASSERT( isDirect || self->pinnedBuffer[0] );
-    const bool   isSequentialCopy = dstStride == srcStride;
+    const bool   isSequentialCopy = (srcStride == width && dstStride == width);
     const size_t totalSize        = height * width;
 
 
@@ -319,27 +319,15 @@ void GpuDownloadBuffer::WaitForCompletion()
 {
     if( self->outgoingSequence > 0 )
     {
-        //const uint32 index = (self->outgoingSequence - 1) % self->bufferCount;
+        const uint32 lastStarted = self->outgoingSequence - 1;
 
-        //      cudaEvent_t event = self->completedEvents[index];
-        //const cudaError_t r     = cudaEventQuery( event );
+        for( uint32 i = self->completedSequence; i <= lastStarted; i++ )
+        {
+            const uint32 eventIdx = i % self->bufferCount;
+            CudaErrCheck( cudaEventSynchronize( self->deviceEvents[eventIdx] ) );
+        }
 
-        //if( r == cudaSuccess )
-        //    return;
-
-        //if( r != cudaErrorNotReady )
-        //    CudaErrCheck( r );
-
-        //CudaErrCheck( cudaEventSynchronize( event ) );
-        
-
-        cudaStream_t downloadStream = self->queue->_stream;
-        // this->self->fence.Reset( 0 );
-        CallHostFunctionOnStream( downloadStream, [this](){
-            this->self->fence.Signal( this->self->outgoingSequence );
-        });
-        self->fence.Wait( self->outgoingSequence );
-
+        self->completedSequence = self->outgoingSequence;
     }
 }
 
@@ -359,6 +347,14 @@ void GpuDownloadBuffer::Reset()
     self->copySequence      = 0;
     self->fence.Reset( 0 );
     self->copyFence.Reset( 0 );
+
+    cudaStream_t stream = self->queue->_stream;
+    for( uint32 i = 0; i < self->bufferCount; i++ )
+    {
+        CudaErrCheck( cudaEventRecord( self->deviceEvents[i], stream ) );
+        CudaErrCheck( cudaEventRecord( self->pinnedEvent[i], stream ) );
+        CudaErrCheck( cudaEventRecord( self->workEvent[i]  , stream ) );
+    }
 }
 
 GpuQueue* GpuDownloadBuffer::GetQueue() const

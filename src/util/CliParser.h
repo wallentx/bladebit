@@ -1,6 +1,10 @@
 #pragma once
 #include <cstring>
 #include "util/Util.h"
+#include <string>
+#include <cstdint>
+#ifndef CLIPARSER_H
+#define CLIPARSER_H
 
 namespace bls
 {
@@ -138,4 +142,6 @@ private:
     int          _argc;
     const char** _argv;
 };
+
+#endif // CLIPARSER_H
 
