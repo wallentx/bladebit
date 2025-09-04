@@ -28,11 +28,11 @@ fi
 
 # Load un-symbolicated stack trace
 IFS=$'\r\n'
-stack_trace=( $(cat $log_path) )
+stack_trace=( "$(cat "$log_path")" )
 
-for c in ${stack_trace[@]}; do
-    address=$(printf "$c" | sed -E "s/.*\[(0x.+)\].*/\1/")
-    line=$(addr2line -ifp --demangle -a $address -e "$exe_path")
+for c in "${stack_trace[@]}"; do
+    address=$(printf '%s' "$c" | sed -E "s/.*\[(0x.+)\].*/\1/")
+    line=$(addr2line -ifp --demangle -a "$address" -e "$exe_path")
     printf "%-58s @%s\n" "$c" "$line"
 done
 
