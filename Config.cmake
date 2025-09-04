@@ -78,6 +78,9 @@ set(preinclude_pch
 # See: https://gitlab.kitware.com/cmake/cmake/-/issues/18265
 cmake_policy(SET CMP0105 NEW)
 
+# --- Add a Coverage predicate for CUDA ---
+set(is_cuda_coverage $<AND:${is_cuda},$<CONFIG:Coverage>>)
+
 set(cuda_archs
 
     $<${is_cuda_release}:
@@ -116,5 +119,10 @@ set(cuda_archs
     $<${is_cuda_debug}:
         -arch=native
         # -gencode=arch=compute_52,code=sm_52 # Maxwell
+    >
+
+    # Coverage: match Debug behavior (native SM)
+    $<${is_cuda_coverage}:
+        -arch=native
     >
 )

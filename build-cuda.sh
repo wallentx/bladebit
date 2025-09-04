@@ -7,18 +7,19 @@ COMPILER="gcc"   # but we won't pass gcc explicitly
 
 usage() {
   cat <<EOF
-Usage: ${0##*/} [-t Release|Debug] [-c gcc|clang]
+Usage: ${0##*/} [-t Release|Debug|Coverage] [-c gcc|clang]
 
 Options:
-  -t    Build type (Release|Debug). Default: Release
+  -t    Build type (Release|Debug|Coverage). Default: Release
   -c    Host compiler (gcc|clang). Default: gcc (omit -c to use system default)
   -h    Show this help
 
 Examples:
-  ${0##*/}                  # Release with system default compiler (gcc)
-  ${0##*/} -t Debug         # Debug with system default compiler
-  ${0##*/} -c clang         # Release with clang
-  ${0##*/} -t Debug -c clang
+  ${0##*/}                     # Release with system default compiler (gcc)
+  ${0##*/} -t Debug            # Debug with system default compiler
+  ${0##*/} -c clang            # Release with clang
+  ${0##*/} -t Coverage         # Coverage with system default compiler
+  ${0##*/} -t Coverage -c clang
 EOF
 }
 
@@ -26,8 +27,8 @@ while getopts ":t:c:h" opt; do
   case "$opt" in
     t)
       case "$OPTARG" in
-        Release|Debug) BUILD_TYPE="$OPTARG" ;;
-        *) echo "Invalid build type: '$OPTARG' (use Release or Debug)"; usage; exit 2 ;;
+        Release|Debug|Coverage) BUILD_TYPE="$OPTARG" ;;
+        *) echo "Invalid build type: '$OPTARG' (use Release, Debug, or Coverage)"; usage; exit 2 ;;
       esac
       ;;
     c)
@@ -44,11 +45,12 @@ done
 
 # Common flags
 COMMON_WARN_FLAGS="-w -fdiagnostics-color=always"
-#CUDA_SILENCE="--disable-warnings -Wno-deprecated-gpu-targets --compiler-options -w"
+
+# CUDA: keep warnings quiet and print useful PTX/NVLINK verbosity
 CUDA_SILENCE="--disable-warnings -Wno-deprecated-gpu-targets --compiler-options -w -Xptxas -v -Xnvlink --verbose"
 
-# Per-config build dir
-BUILD_DIR="build-${BUILD_TYPE,,}"  # build-release / build-debug
+# Per-config build dir (lowercased)
+BUILD_DIR="build-${BUILD_TYPE,,}"  # build-release / build-debug / build-coverage
 
 echo ">>> Config:"
 echo "    Build type       : $BUILD_TYPE"
@@ -105,9 +107,24 @@ EOF
   fi
 fi
 
-# Configure
+# Configure fresh
 rm -rf "$BUILD_DIR"
 cmake "${CMAKE_ARGS[@]}"
 
-# Build
+# Build only the CUDA plotter target (fast iteration)
 cmake --build "$BUILD_DIR" --target bladebit_cuda -j"$(nproc)"
+
+# Helpful tip for Coverage builds
+if [[ "$BUILD_TYPE" == "Coverage" ]]; then
+  cat <<'TIP'
+>>> Coverage build detected.
+    After running your plotting workload, generate HTML with lcov/genhtml, e.g.:
+
+      lcov --capture --directory build-coverage --output-file coverage.info
+      lcov --remove coverage.info '/usr/*' '*/external/*' --output-file coverage.cleaned.info
+      genhtml coverage.cleaned.info --output-directory coverage-html
+
+    Or, if you added a CMake 'coverage-report' target:
+      cmake --build build-coverage --target coverage-report
+TIP
+fi

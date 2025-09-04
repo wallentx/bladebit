@@ -4,11 +4,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CONFIGURATION_TYPES Release Debug)
+# Add Coverage alongside Release/Debug
+set(CMAKE_CONFIGURATION_TYPES Release Debug Coverage)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release"
-        CACHE STRING "Possible values are: Release, Debug"
+        CACHE STRING "Possible values are: Release, Debug, Coverage"
         FORCE
     )
 endif()
@@ -40,6 +41,30 @@ if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
 endif()
 
+# ----- Coverage build type flags -----
+# Host C/C++
+if(NOT DEFINED CMAKE_C_FLAGS_COVERAGE)
+  set(CMAKE_C_FLAGS_COVERAGE   "-O0 -g --coverage" CACHE STRING "" FORCE)
+endif()
+if(NOT DEFINED CMAKE_CXX_FLAGS_COVERAGE)
+  set(CMAKE_CXX_FLAGS_COVERAGE "-O0 -g --coverage" CACHE STRING "" FORCE)
+endif()
+# Linkers
+if(NOT DEFINED CMAKE_EXE_LINKER_FLAGS_COVERAGE)
+  set(CMAKE_EXE_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "" FORCE)
+endif()
+if(NOT DEFINED CMAKE_SHARED_LINKER_FLAGS_COVERAGE)
+  set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "" FORCE)
+endif()
+if(NOT DEFINED CMAKE_MODULE_LINKER_FLAGS_COVERAGE)
+  set(CMAKE_MODULE_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "" FORCE)
+endif()
+# CUDA (host side coverage via -Xcompiler; device annotated with -lineinfo)
+if(CMAKE_CUDA_COMPILER AND NOT DEFINED CMAKE_CUDA_FLAGS_COVERAGE)
+  set(CMAKE_CUDA_FLAGS_COVERAGE
+      "-lineinfo -Xcompiler=-O0 -Xcompiler=-g -Xcompiler=--coverage"
+      CACHE STRING "" FORCE)
+endif()
 
 message("Config   : ${CMAKE_BUILD_TYPE}")
 message("Compiler : ${CMAKE_CXX_COMPILER_ID}")
@@ -60,7 +85,6 @@ if(NOT(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR))
     set(BB_ENABLE_TESTS OFF)
     set(BB_ENABLE_EXE OFF)
 endif()
-
 
 #
 # Options
@@ -113,6 +137,7 @@ endif()
 #
 set(is_release $<CONFIG:Release>)
 set(is_debug $<CONFIG:Debug>)
+set(is_coverage $<CONFIG:Coverage>)
 set(is_c_cpp $<COMPILE_LANGUAGE:CXX,C>)
 set(is_cuda $<COMPILE_LANGUAGE:CUDA>)
 set(is_cuda_release $<AND:${is_cuda},${is_release}>)
@@ -120,13 +145,11 @@ set(is_cuda_debug $<AND:${is_cuda},${is_debug}>)
 set(is_x86 $<OR:$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},AMD64>,$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},x86_64>>)
 set(is_arm $<OR:$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},arm64>,$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},aarch64>>)
 
-
 if(CUDAToolkit_FOUND AND NOT ${NO_CUDA_HARVESTER})
     set(have_cuda $<BOOL:1>)
 else()
     set(have_cuda $<BOOL:0>)
 endif()
-
 
 #
 # Targets
@@ -146,4 +169,3 @@ if(CUDAToolkit_FOUND)
 else()
     message(WARNING "CUDA Toolkit not found. This build is optimized for CUDA-only usage, but will build core library for testing.")
 endif()
-

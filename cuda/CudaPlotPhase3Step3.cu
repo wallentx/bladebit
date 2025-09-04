@@ -41,7 +41,7 @@ void CudaK32PlotPhase3Step3( CudaK32PlotContext& cx )
 
         // Load 1 column
         s3.lpIn   .UploadArrayT( linePoints, BBCU_BUCKET_COUNT, P3_PRUNED_BUCKET_MAX  , BBCU_BUCKET_COUNT, counts );
-        s3.indexIn.UploadArrayT( indices   , BBCU_BUCKET_COUNT, 1, BBCU_BUCKET_COUNT, counts );
+        s3.indexIn.UploadArrayT( indices   , BBCU_BUCKET_COUNT, P3_PRUNED_BUCKET_MAX*3, BBCU_BUCKET_COUNT, counts );
     };
 
     auto& p3 = *cx.phase3;
@@ -214,7 +214,7 @@ void CudaK32PlotPhase3Step3( CudaK32PlotContext& cx )
             if( !isLastBucket )
             {
                 // Not the last bucket, so retain entries for the next GPU compression bucket
-                CudaErrCheck( cudaMemcpyAsync( s3.devLinePoints, copySource, copySize, cudaMemcpyDeviceToDevice, lpStream ) );
+                CudaErrCheck( cudaMemcpyAsync( sortedLinePoints - retainedLPCount, copySource, copySize, cudaMemcpyDeviceToDevice, lpStream ) );
             }
             else
             {       
