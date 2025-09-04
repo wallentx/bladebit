@@ -442,7 +442,7 @@ void Step1( CudaK32PlotContext& cx )
         rTableOffset += entryCount;
 
         // Download data (Vertical download (write 1 column))
-        s1.rMapOut.Download2DT<RMap>( p3.hostRMap + (size_t)bucket * P3_PRUNED_SLICE_MAX,
+        s1.rMapOut.Download2DT<RMap>( p3.hostRMap + (size_t)bucket * P3_PRUNED_BUCKET_MAX,
             P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_BUCKET_MAX, P3_PRUNED_SLICE_MAX, cx.computeStream );
     }
 
@@ -614,8 +614,8 @@ void CompressInlinedTable( CudaK32PlotContext& cx )
         Log::Line( "[P3.X] Bucket %u released devXs", bucket );
 
         Log::Line( "[P3] Submitting GPU-to-Host download for bucket %u.", bucket );
-        tx.lpOut   .Download2DT<uint64>( p3.hostLinePoints + (size_t)bucket * P3_PRUNED_BUCKET_MAX  , P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_BUCKET_MAX    , P3_PRUNED_SLICE_MAX, cx.computeStream );
-        tx.indexOut.Download2DT<uint32>( p3.hostIndices    + (size_t)bucket * P3_PRUNED_BUCKET_MAX*3, P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_BUCKET_MAX * 3, P3_PRUNED_SLICE_MAX, cx.computeStream );
+        tx.lpOut   .Download2DT<uint64>( p3.hostLinePoints + (size_t)bucket * P3_PRUNED_BUCKET_MAX  , P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_SLICE_MAX    , P3_PRUNED_SLICE_MAX, cx.computeStream );
+        tx.indexOut.Download2DT<uint32>( p3.hostIndices    + (size_t)bucket * P3_PRUNED_BUCKET_MAX*3, P3_PRUNED_SLICE_MAX, BBCU_BUCKET_COUNT, P3_PRUNED_SLICE_MAX * 3, P3_PRUNED_SLICE_MAX, cx.computeStream );
         Log::Line( "[P3.X] Bucket %u downloads posted", bucket );
 
         rTableOffset += entryCount;
